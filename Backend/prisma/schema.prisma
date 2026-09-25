@@ -1,0 +1,274 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ServiceCategory {
+  IDENTITY
+  VITAL_RECORD
+  CIVIL_STATUS
+  OTHER
+}
+
+enum ConfidenceLevel {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum CitationType {
+  PROCLAMATION
+  REGULATION
+  RESEARCH_PAPER
+  REPORT
+}
+
+enum FeedbackType {
+  EXTRA_DOCUMENT
+  BRIBE_REQUEST
+  DELAY
+  GOOD_EXPERIENCE
+  OTHER
+}
+
+enum ViewType {
+  PAGE_VIEW
+  VOICE_QUERY
+  DEPENDENCY_CHECK
+}
+
+model Service {
+  id            String          @id @default(uuid())
+  slug          String          @unique
+  nameAm        String
+  nameEn        String
+  descriptionAm String?
+  descriptionEn String?
+  category      ServiceCategory
+  isActive      Boolean         @default(true)
+
+  playbooks    ServicePlaybook[]
+  dependencies ServiceDependency[] @relation("ServiceDependencies")
+  requiredBy   ServiceDependency[] @relation("RequiredServices")
+  citations    Citation[]
+  feedback     Feedback[]
+  voiceQueries VoiceQuery[]
+  serviceViews ServiceViewModel[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+model Woreda {
+  id        String  @id @default(uuid())
+  name      String
+  city      String  @default("Addis Ababa")
+  region    String  @default("Addis Ababa")
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean @default(true)
+
+  playbooks    ServicePlaybook[]
+  feedback     Feedback[]
+  serviceViews ServiceViewModel[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([name, city])
+  @@index([region])
+  @@index([isActive])
+}
+
+model ServicePlaybook {
+  id        String @id @default(uuid())
+  serviceId String
+  woredaId  String
+
+  source     String
+  confidence ConfidenceLevel @default(MEDIUM)
+  verifiedBy String?
+
+  feeOfficial Decimal? @db.Decimal(12, 2)
+  feeReported Decimal? @db.Decimal(12, 2)
+
+  timeOfficial String?
+  timeReported String?
+
+  officeLocation String?
+  officeHours    String?
+  notes          String?
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  woreda  Woreda  @relation(fields: [woredaId], references: [id], onDelete: Cascade)
+
+  documents Document[]
+  steps     Step[]
+  citations Citation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, woredaId])
+  @@index([serviceId])
+  @@index([woredaId])
+}
+
+model Document {
+  id         String @id @default(uuid())
+  playbookId String
+
+  nameAm       String
+  nameEn       String
+  isRequired   Boolean @default(true)
+  notes        String?
+  displayOrder Int     @default(0)
+
+  playbook  ServicePlaybook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  citations Citation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([playbookId, displayOrder])
+  @@index([playbookId])
+}
+
+model Step {
+  id         String @id @default(uuid())
+  playbookId String
+
+  stepOrder      Int
+  instructionAm  String
+  instructionEn  String
+  officeLocation String?
+  estimatedTime  String?
+
+  playbook ServicePlaybook @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([playbookId, stepOrder])
+  @@index([playbookId])
+}
+
+model ServiceDependency {
+  id                String @id @default(uuid())
+  serviceId         String
+  requiresServiceId String
+
+  isBlocking Boolean @default(true)
+  notes      String?
+
+  service Service @relation("ServiceDependencies", fields: [serviceId], references: [id], onDelete: Cascade)
+
+  requiresService Service @relation("RequiredServices", fields: [requiresServiceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([serviceId, requiresServiceId])
+  @@index([serviceId])
+  @@index([requiresServiceId])
+}
+
+model Citation {
+  id String @id @default(uuid())
+
+  playbookId String?
+  serviceId  String?
+  documentId String?
+
+  type         CitationType
+  title        String
+  reference    String
+  excerpt      String?
+  sourceUrl    String?
+  scholarxivId String?
+  year         Int
+
+  playbook ServicePlaybook? @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  document Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([playbookId])
+  @@index([documentId])
+}
+
+model Feedback {
+  id        String  @id @default(uuid())
+  serviceId String?
+  woredaId  String?
+
+  feedbackType FeedbackType
+
+  voiceUrl        String?
+  voiceTranscript String?
+
+  isAnonymous Boolean @default(true)
+  language    String
+
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  woreda  Woreda?  @relation(fields: [woredaId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([woredaId])
+  @@index([feedbackType])
+  @@index([createdAt])
+}
+
+model VoiceQuery {
+  id String @id @default(uuid())
+
+  audioUrl   String?
+  transcript String
+
+  detectedIntent    String
+  detectedServiceId String?
+  detectedLanguage  String
+
+  responseText     String
+  responseAudioUrl String?
+
+  sessionId String
+
+  service Service? @relation(fields: [detectedServiceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([detectedServiceId])
+  @@index([detectedLanguage])
+  @@index([createdAt])
+}
+
+model ServiceViewModel {
+  id String @id @default(uuid())
+
+  serviceId String
+  woredaId  String?
+  viewType  ViewType
+  count     Int      @default(1)
+  date      DateTime
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  woreda  Woreda? @relation(fields: [woredaId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, woredaId, viewType, date])
+  @@index([serviceId])
+  @@index([woredaId])
+  @@index([date])
+}
