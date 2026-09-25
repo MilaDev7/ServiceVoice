@@ -34,6 +34,15 @@ export default {
         card: '0 1px 3px rgba(0, 0, 0, 0.1)',
         message: '0 1px 2px rgba(0, 0, 0, 0.05)',
       },
+      keyframes: {
+        wave: {
+          '0%, 100%': { transform: 'scaleY(0.5)' },
+          '50%': { transform: 'scaleY(1.5)' },
+        },
+      },
+      animation: {
+        wave: 'wave 1s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

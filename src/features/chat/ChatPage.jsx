@@ -2,33 +2,32 @@ import { useState } from 'react';
 import ChatMessageList from './components/ChatMessageList';
 import ChatInput from './components/ChatInput';
 import FeedbackPrompt from './components/FeedbackPrompt';
+import VoiceFab from './components/VoiceFab';
+import VoiceOverlay from './components/VoiceOverlay';
 import { mockMessages } from './data/mockMessages';
 
 function ChatPage() {
   const [messages, setMessages] = useState(mockMessages);
   const [isThinking, setIsThinking] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
 
   const handleActionClick = (action) => {
-    console.log('Quick action clicked:', action.label, '— action key:', action.action);
-
-    
+    console.log('Quick action clicked:', action.label);
     setIsFeedbackOpen(true);
   };
 
   const handleSmsClick = () => {
-    console.log('SMS checklist requested for current service');
-    
+    console.log('SMS checklist requested');
   };
 
-  const handleSend = (text) => {
+  const sendUserMessage = (text) => {
     const newMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
       content: text,
       timestamp: new Date().toISOString(),
     };
-
     setMessages((prev) => [...prev, newMessage]);
 
     setIsThinking(true);
@@ -37,7 +36,7 @@ function ChatPage() {
         id: `bot-${Date.now()}`,
         role: 'bot',
         content:
-          "I understand. Let me look that up. (This is a placeholder response — real answers coming soon.)",
+          "I understand. Let me look that up. (Placeholder response.)",
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, botReply]);
@@ -45,21 +44,21 @@ function ChatPage() {
     }, 800);
   };
 
-  const handleMicClick = () => {
-    console.log('Mic clicked — Voxide integration comes later');
+  const handleSend = (text) => sendUserMessage(text);
+
+  const handleVoiceTranscript = (transcript) => {
+    sendUserMessage(transcript);
   };
 
-  const handleAttachClick = () => {
-    console.log('Attach clicked');
-  };
+  const handleMicClick = () => setIsVoiceOpen(true);
+  const handleAttachClick = () => console.log('Attach clicked');
 
   const handleFeedbackSubmit = (payload) => {
     console.log('Feedback submitted:', payload);
-   
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       <ChatMessageList
         messages={messages}
         onActionClick={handleActionClick}
@@ -79,6 +78,17 @@ function ChatPage() {
         disabled={isThinking}
       />
 
+      {/* Floating voice button */}
+      <VoiceFab onClick={() => setIsVoiceOpen(true)} disabled={isThinking} />
+
+      {/* Full-screen voice overlay */}
+      <VoiceOverlay
+        isOpen={isVoiceOpen}
+        onClose={() => setIsVoiceOpen(false)}
+        onTranscript={handleVoiceTranscript}
+      />
+
+      {/* Feedback modal */}
       <FeedbackPrompt
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
