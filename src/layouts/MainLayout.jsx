@@ -20,13 +20,13 @@ function MainLayout() {
   }, [isDesktop]);
 
   return (
-    <div className="min-h-screen flex bg-page-bg">
+    <div className="h-screen flex bg-page-bg">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0">
         <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-hidden">
           <Outlet />
         </main>
       </div>
