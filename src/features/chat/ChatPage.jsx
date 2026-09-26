@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ChatMessageList from './components/ChatMessageList';
 import ChatInput from './components/ChatInput';
 import FeedbackPrompt from './components/FeedbackPrompt';
@@ -7,19 +8,20 @@ import VoiceOverlay from './components/VoiceOverlay';
 import { mockMessages } from './data/mockMessages';
 
 function ChatPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [messages, setMessages] = useState(mockMessages);
   const [isThinking, setIsThinking] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
+  const hasHandledQuery = useRef(false);
 
-  const handleActionClick = (action) => {
-    console.log('Quick action clicked:', action.label);
-    setIsFeedbackOpen(true);
-  };
-
-  const handleSmsClick = () => {
-    console.log('SMS checklist requested');
-  };
+  // Shared bot reply generator
+  const generateBotReply = (text) => ({
+    id: `bot-${Date.now()}`,
+    role: 'bot',
+    content: `I understand you're asking about: "${text}". (Placeholder response — real answers coming soon.)`,
+    timestamp: new Date().toISOString(),
+  });
 
   const sendUserMessage = (text) => {
     const newMessage = {
@@ -32,33 +34,41 @@ function ChatPage() {
 
     setIsThinking(true);
     setTimeout(() => {
-      const botReply = {
-        id: `bot-${Date.now()}`,
-        role: 'bot',
-        content:
-          "I understand. Let me look that up. (Placeholder response.)",
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, botReply]);
+      setMessages((prev) => [...prev, generateBotReply(text)]);
       setIsThinking(false);
     }, 800);
   };
 
-  const handleSend = (text) => sendUserMessage(text);
+  // Handle ?q= query param from ServicesPage
+  useEffect(() => {
+    const query = searchParams.get('q');
+    if (query && !hasHandledQuery.current) {
+      hasHandledQuery.current = true;
 
-  const handleVoiceTranscript = (transcript) => {
-    sendUserMessage(transcript);
+      // Reset messages, then send the new prompt
+      setMessages([]);
+      setTimeout(() => sendUserMessage(query), 100);
+
+      // Clean the URL (remove ?q=) so refresh doesn't re-send
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleActionClick = (action) => {
+    console.log('Quick action clicked:', action.label);
+    setIsFeedbackOpen(true);
   };
 
+  const handleSmsClick = () => console.log('SMS checklist requested');
+  const handleSend = (text) => sendUserMessage(text);
+  const handleVoiceTranscript = (transcript) => sendUserMessage(transcript);
   const handleMicClick = () => setIsVoiceOpen(true);
   const handleAttachClick = () => console.log('Attach clicked');
-
-  const handleFeedbackSubmit = (payload) => {
+  const handleFeedbackSubmit = (payload) =>
     console.log('Feedback submitted:', payload);
-  };
 
   return (
-    <div className="h-full flex flex-col relative">
+    <div className="h-full min-h-0 flex flex-col relative">
       <ChatMessageList
         messages={messages}
         onActionClick={handleActionClick}
@@ -78,17 +88,14 @@ function ChatPage() {
         disabled={isThinking}
       />
 
-      {/* Floating voice button */}
       <VoiceFab onClick={() => setIsVoiceOpen(true)} disabled={isThinking} />
 
-      {/* Full-screen voice overlay */}
       <VoiceOverlay
         isOpen={isVoiceOpen}
         onClose={() => setIsVoiceOpen(false)}
         onTranscript={handleVoiceTranscript}
       />
 
-      {/* Feedback modal */}
       <FeedbackPrompt
         isOpen={isFeedbackOpen}
         onClose={() => setIsFeedbackOpen(false)}
