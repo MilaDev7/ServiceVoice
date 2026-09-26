@@ -3,11 +3,34 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light mode tokens */
+    --color-surface: 255 255 255;         /* white */
+    --color-page-bg: 249 250 251;         /* #F9FAFB */
+    --color-text-primary: 17 24 39;       /* #111827 */
+    --color-text-secondary: 107 114 128;  /* #6B7280 */
+    --color-border: 229 231 235;          /* #E5E7EB */
+    --color-user-bubble: 22 163 74;       /* #16A34A */
+    --color-bot-bubble: 255 255 255;      /* white */
+    --color-primary-light: 240 253 244;   /* #F0FDF4 */
+  }
+
+  .dark {
+    /* Dark mode tokens */
+    --color-surface: 31 41 55;            /* #1F2937 — dark card */
+    --color-page-bg: 17 24 39;            /* #111827 — darker page */
+    --color-text-primary: 243 244 246;    /* #F3F4F6 — near white */
+    --color-text-secondary: 156 163 175;  /* #9CA3AF — light gray */
+    --color-border: 55 65 81;             /* #374151 — subtle dark border */
+    --color-user-bubble: 22 163 74;       /* #16A34A — keep green */
+    --color-bot-bubble: 31 41 55;         /* #1F2937 — dark card */
+    --color-primary-light: 22 50 38;      /* darker green tint */
+  }
+
   html {
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    height: 100%;
   }
 
   body {
@@ -16,5 +39,8 @@
 
   .font-amharic {
     font-family: 'Noto Sans Ethiopic', sans-serif;
+  }
+    html, body {
+    transition: background-color 200ms ease, color 200ms ease;
   }
 }

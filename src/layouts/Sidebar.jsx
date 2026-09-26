@@ -82,13 +82,13 @@ function Sidebar({ isOpen, onClose }) {
               end={end}
               onClick={onClose}
               className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-btn mb-1 transition-colors',
-                  isActive
-                    ? 'bg-primary-light text-primary font-medium'
-                    : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary'
-                )
-              }
+  clsx(
+    'flex items-center gap-3 px-3 py-2.5 rounded-btn mb-1 transition-colors',
+    isActive
+      ? 'bg-primary-light text-primary font-medium'
+      : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:hover:bg-gray-700/50'
+  )
+}
             >
               <Icon size={18} />
               <span>{label}</span>
@@ -104,7 +104,7 @@ function Sidebar({ isOpen, onClose }) {
           {PLACEHOLDER_RECENT.map((chat) => (
             <button
               key={chat.id}
-              className="w-full text-left px-3 py-2 rounded-btn hover:bg-gray-100 transition-colors"
+              className="w-full text-left px-3 py-2 rounded-btn hover:bg-gray-100 transition-colors dark:hover:bg-gray-700/50"
             >
               <div className="text-sm text-text-primary truncate">{chat.title}</div>
               <div className="text-xs text-text-secondary mt-0.5">{chat.time}</div>

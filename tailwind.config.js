@@ -1,25 +1,26 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',  
   content: [
     "./index.html",
     "./src/**/*.{js,jsx}",
   ],
   theme: {
     extend: {
-      colors: {
+            colors: {
         primary: {
           DEFAULT: '#16A34A',
           dark: '#15803D',
-          light: '#F0FDF4',
+          light: 'rgb(var(--color-primary-light) / <alpha-value>)',
           border: '#BBF7D0',
         },
-        surface: '#FFFFFF',
-        'page-bg': '#F9FAFB',
-        'text-primary': '#111827',
-        'text-secondary': '#6B7280',
-        border: '#E5E7EB',
-        'user-bubble': '#16A34A',
-        'bot-bubble': '#FFFFFF',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        'page-bg': 'rgb(var(--color-page-bg) / <alpha-value>)',
+        'text-primary': 'rgb(var(--color-text-primary) / <alpha-value>)',
+        'text-secondary': 'rgb(var(--color-text-secondary) / <alpha-value>)',
+        border: 'rgb(var(--color-border) / <alpha-value>)',
+        'user-bubble': 'rgb(var(--color-user-bubble) / <alpha-value>)',
+        'bot-bubble': 'rgb(var(--color-bot-bubble) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
