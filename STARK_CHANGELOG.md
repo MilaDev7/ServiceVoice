@@ -124,7 +124,7 @@ Frontend Scaffold
   - Feedback Types (4 colored bars)
   - Privacy footer
 
-### Day 11 — Profile + App-Wide Preferences
+###  Profile + App-Wide Preferences
 
 **Built:**
 - `AppProvider` (Context) with language, woreda, theme, notifications
