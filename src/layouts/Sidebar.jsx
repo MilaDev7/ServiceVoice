@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { MessageSquarePlus, MessageSquare, Clock, Star, User, X } from 'lucide-react';
 import { ROUTES } from '../constants/routes';
 import { clsx } from 'clsx';
+import { useTranslation } from '../i18n';
 
 const NAV_ITEMS = [
   { to: ROUTES.CHAT, label: 'Chat', icon: MessageSquare, end: true },
@@ -18,6 +19,7 @@ const PLACEHOLDER_RECENT = [
 
 function Sidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
+    const { t } = useTranslation();
 
   const handleNewChat = () => {
     navigate(ROUTES.CHAT);

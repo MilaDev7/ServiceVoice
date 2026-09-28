@@ -3,6 +3,7 @@ import StatCard from './components/StatCard';
 import StatSection from './components/StatSection';
 import BarRow from './components/BarRow';
 import { mockDashboard } from './data/mockDashboard';
+import { useTranslation } from '../../i18n';
 
 function formatUpdated(iso) {
   const date = new Date(iso);
@@ -17,54 +18,50 @@ function formatUpdated(iso) {
 
 function DashboardPage() {
   const data = mockDashboard;
+  const { t } = useTranslation();
   const maxService = Math.max(...data.byService.map((s) => s.count));
   const maxWoreda = Math.max(...data.byWoreda.map((w) => w.count));
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">Public Dashboard</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Anonymous feedback from citizens across Addis Ababa.
-        </p>
+        <h1 className="text-2xl font-bold text-text-primary">{t('dashboard.title')}</h1>
+        <p className="text-sm text-text-secondary mt-1">{t('dashboard.subtitle')}</p>
         <p className="text-xs text-text-secondary mt-1">
-          Data as of {formatUpdated(data.lastUpdated)}
+          {t('dashboard.dataAsOf')} {formatUpdated(data.lastUpdated)}
         </p>
       </div>
 
-      {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard
-          label="Reports"
+          label={t('dashboard.reports')}
           value={data.summary.totalReports}
           icon={FileText}
           tone="primary"
         />
         <StatCard
-          label="Avg time"
+          label={t('dashboard.avgTime')}
           value={data.summary.avgTimeDays}
-          suffix="days"
+          suffix={t('dashboard.avgTimeSuffix')}
           icon={Clock}
           tone="yellow"
         />
         <StatCard
-          label="Extra fee"
+          label={t('dashboard.extraFee')}
           value={`${data.summary.extraFeePercent}%`}
           icon={AlertCircle}
           tone="red"
         />
         <StatCard
-          label="Extra doc"
+          label={t('dashboard.extraDoc')}
           value={`${data.summary.extraDocPercent}%`}
           icon={FileWarning}
           tone="red"
         />
       </div>
 
-      {/* Two columns on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <StatSection title="Reports by Service">
+        <StatSection title={t('dashboard.byService')}>
           {data.byService.map((s) => (
             <BarRow
               key={s.id}
@@ -76,7 +73,7 @@ function DashboardPage() {
           ))}
         </StatSection>
 
-        <StatSection title="Reports by Woreda">
+        <StatSection title={t('dashboard.byWoreda')}>
           {data.byWoreda.map((w) => (
             <BarRow
               key={w.id}
@@ -89,8 +86,7 @@ function DashboardPage() {
         </StatSection>
       </div>
 
-      {/* Full-width feedback types */}
-      <StatSection title="Feedback Types">
+      <StatSection title={t('dashboard.byType')}>
         {data.byFeedbackType.map((f) => (
           <BarRow
             key={f.id}
@@ -103,11 +99,9 @@ function DashboardPage() {
         ))}
       </StatSection>
 
-      {/* Privacy footer */}
       <div className="mt-6 p-4 bg-primary-light border border-primary-border rounded-card">
-        <p className="text-xs text-primary-dark">
-          🔒 All reports are anonymous. We never collect names, phone numbers,
-          or identifying information.
+        <p className="text-xs text-primary-dark dark:text-green-300">
+          🔒 {t('dashboard.privacy')}
         </p>
       </div>
     </div>

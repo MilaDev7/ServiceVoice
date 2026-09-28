@@ -1,8 +1,9 @@
-import { Sun, Moon, Trash2, Shield, Globe, MapPin, Bell } from 'lucide-react';
+import { Sun, Moon, Trash2, Shield } from 'lucide-react';
 import ProfileSection from './components/ProfileSection';
 import PreferenceRow from './components/PreferenceRow';
 import { usePreferences } from '../settings/hooks/usePreferences';
 import { LANGUAGES, WOREDAS } from '../../app/providers';
+import { useTranslation } from '../../i18n';
 
 function ProfilePage() {
   const {
@@ -17,6 +18,8 @@ function ProfilePage() {
     currentLanguage,
     currentWoreda,
   } = usePreferences();
+
+  const { t } = useTranslation();
 
   const handleClearData = () => {
     const confirmed = window.confirm(
@@ -35,37 +38,28 @@ function ProfilePage() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">Profile & Settings</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Customize how ServiceVoice works for you.
-        </p>
+        <h1 className="text-2xl font-bold text-text-primary">{t('profile.title')}</h1>
+        <p className="text-sm text-text-secondary mt-1">{t('profile.subtitle')}</p>
       </div>
 
       <div className="space-y-4">
-        {/* Identity */}
-        <ProfileSection
-          title="Your preferences"
-          description="These settings affect the entire app."
-        >
+        <ProfileSection title={t('profile.yourPrefs')} description={t('profile.prefsDesc')}>
           <div className="flex items-center gap-4 p-4 bg-primary-light rounded-card">
             <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
               <span className="text-white font-semibold text-lg">U</span>
             </div>
             <div>
-              <p className="font-semibold text-text-primary">Anonymous user</p>
-              <p className="text-xs text-text-secondary">
-                No account needed — your data stays on this device
-              </p>
+              <p className="font-semibold text-text-primary">{t('profile.anonymousUser')}</p>
+              <p className="text-xs text-text-secondary">{t('profile.anonymousDesc')}</p>
             </div>
           </div>
         </ProfileSection>
 
-        {/* Language */}
-        <ProfileSection
-          title="Language"
-          description="Choose the language for voice and text."
-        >
-          <PreferenceRow label="Preferred language" description={`Currently: ${currentLanguage.label}`}>
+        <ProfileSection title={t('profile.language')} description={t('profile.languageDesc')}>
+          <PreferenceRow
+            label={t('profile.preferredLang')}
+            description={`${t('profile.currently')}: ${currentLanguage.label}`}
+          >
             <div className="flex items-center bg-page-bg rounded-pill p-0.5">
               {LANGUAGES.map((lang) => (
                 <button
@@ -85,14 +79,10 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
-        {/* Woreda */}
-        <ProfileSection
-          title="Location"
-          description="Used to show the correct office and fees."
-        >
+        <ProfileSection title={t('profile.location')} description={t('profile.locationDesc')}>
           <PreferenceRow
-            label="Your woreda"
-            description={`Currently: ${currentWoreda.name}`}
+            label={t('profile.yourWoreda')}
+            description={`${t('profile.currently')}: ${currentWoreda.name}`}
           >
             <select
               value={woredaId}
@@ -108,12 +98,8 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
-        {/* Theme */}
-        <ProfileSection
-          title="Appearance"
-          description="Choose light or dark mode."
-        >
-          <PreferenceRow label="Theme" description={`Currently: ${theme}`}>
+        <ProfileSection title={t('profile.appearance')} description={t('profile.appearanceDesc')}>
+          <PreferenceRow label={t('profile.theme')} description={`${t('profile.currently')}: ${theme}`}>
             <div className="flex items-center bg-page-bg rounded-pill p-0.5">
               <button
                 onClick={() => setTheme('light')}
@@ -125,7 +111,7 @@ function ProfilePage() {
                 aria-pressed={theme === 'light'}
               >
                 <Sun size={14} />
-                Light
+                {t('profile.light')}
               </button>
               <button
                 onClick={() => setTheme('dark')}
@@ -137,20 +123,19 @@ function ProfilePage() {
                 aria-pressed={theme === 'dark'}
               >
                 <Moon size={14} />
-                Dark
+                {t('profile.dark')}
               </button>
             </div>
           </PreferenceRow>
         </ProfileSection>
 
-        {/* Notifications */}
         <ProfileSection
-          title="Notifications"
-          description="Control how we reach you."
+          title={t('profile.notifications')}
+          description={t('profile.notificationsDesc')}
         >
           <PreferenceRow
-            label="Voice responses"
-            description="Play voice replies when available"
+            label={t('profile.voiceResponses')}
+            description={t('profile.voiceResponsesDesc')}
           >
             <ToggleSwitch
               checked={notifications.voice}
@@ -159,8 +144,8 @@ function ProfilePage() {
           </PreferenceRow>
 
           <PreferenceRow
-            label="SMS alerts"
-            description="Receive document checklists via SMS"
+            label={t('profile.smsAlerts')}
+            description={t('profile.smsAlertsDesc')}
           >
             <ToggleSwitch
               checked={notifications.sms}
@@ -169,8 +154,8 @@ function ProfilePage() {
           </PreferenceRow>
 
           <PreferenceRow
-            label="Push notifications"
-            description="Browser notifications for updates"
+            label={t('profile.pushNotifications')}
+            description={t('profile.pushDesc')}
           >
             <ToggleSwitch
               checked={notifications.push}
@@ -179,34 +164,31 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
-        {/* Data & privacy */}
         <ProfileSection
-          title="Data & privacy"
-          description="Your data stays on this device."
+          title={t('profile.dataPrivacy')}
+          description={t('profile.dataPrivacyDesc')}
         >
           <div className="flex items-start gap-3 p-3 bg-primary-light rounded-btn">
             <Shield size={16} className="text-primary flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-primary-dark">
-              We never collect your name, phone number, or location. Your feedback
-              is always anonymous.
+            <p className="text-xs text-primary-dark dark:text-green-300">
+              {t('profile.privacyNote')}
             </p>
           </div>
 
           <PreferenceRow
-            label="Clear local data"
-            description="Reset preferences and chat history"
+            label={t('profile.clearData')}
+            description={t('profile.clearDataDesc')}
           >
             <button
               onClick={handleClearData}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-red-200 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
             >
               <Trash2 size={14} />
-              Clear
+              {t('profile.clear')}
             </button>
           </PreferenceRow>
         </ProfileSection>
 
-        {/* About footer */}
         <p className="text-center text-xs text-text-secondary pt-2">
           ServiceVoice · Hackathon build · v0.1
         </p>
@@ -222,7 +204,7 @@ function ToggleSwitch({ checked, onChange }) {
       aria-checked={checked}
       onClick={onChange}
       className={`relative w-10 h-6 rounded-full transition-colors ${
-        checked ? 'bg-primary' : 'bg-gray-300'
+        checked ? 'bg-primary' : 'bg-gray-300 dark:bg-gray-600'
       }`}
     >
       <span

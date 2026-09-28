@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, Square, Mic } from 'lucide-react';
 import { useVoiceRecorder } from '../../../shared/hooks/useVoiceRecorder';
+import { useTranslation } from '../../../i18n';
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60);
@@ -11,8 +12,8 @@ function formatDuration(seconds) {
 function VoiceOverlay({ isOpen, onClose, onTranscript }) {
   const { status, duration, transcript, start, stop, cancel, reset } =
     useVoiceRecorder();
+  const { t } = useTranslation();
 
-  // Auto-start recording when overlay opens
   useEffect(() => {
     if (isOpen) {
       start();
@@ -21,7 +22,6 @@ function VoiceOverlay({ isOpen, onClose, onTranscript }) {
     }
   }, [isOpen, start, reset]);
 
-  // Escape key closes (cancels recording)
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e) => {
@@ -34,7 +34,6 @@ function VoiceOverlay({ isOpen, onClose, onTranscript }) {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, cancel, onClose]);
 
-  // Lock body scroll
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -48,8 +47,6 @@ function VoiceOverlay({ isOpen, onClose, onTranscript }) {
 
   const handleStop = () => {
     stop();
-
-    // Mock: send transcript after processing delay
     setTimeout(() => {
       if (transcript) {
         onTranscript(transcript);
@@ -68,25 +65,22 @@ function VoiceOverlay({ isOpen, onClose, onTranscript }) {
 
   return (
     <div
-      className="fixed inset-0 z-[90] bg-white flex flex-col"
+      className="fixed inset-0 z-[90] bg-surface flex flex-col"
       role="dialog"
       aria-modal="true"
-      aria-label="Voice input"
+      aria-label={t('chat.startVoice')}
     >
-      {/* Top: Cancel */}
       <div className="flex justify-end p-4">
         <button
           onClick={handleCancel}
-          aria-label="Cancel voice input"
-          className="p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-gray-100 transition-colors"
+          aria-label={t('chat.stopRecording')}
+          className="p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
         >
           <X size={22} />
         </button>
       </div>
 
-      {/* Center: Waveform + status + transcript */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 -mt-20">
-        {/* Waveform visualization */}
         <div className="relative mb-12">
           <div className="w-40 h-40 rounded-full bg-primary-light flex items-center justify-center">
             {status === 'recording' ? (
@@ -117,51 +111,42 @@ function VoiceOverlay({ isOpen, onClose, onTranscript }) {
             )}
           </div>
 
-          {/* Pulse ring while recording */}
           {status === 'recording' && (
             <span className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" />
           )}
         </div>
 
-        {/* Status text */}
         <p className="text-lg font-semibold text-text-primary mb-2">
-          {status === 'recording' && 'Listening...'}
-          {status === 'processing' && 'Processing...'}
-          {status === 'idle' && 'Ready'}
+          {status === 'recording' && t('chat.listening')}
+          {status === 'processing' && t('chat.processing')}
+          {status === 'idle' && t('chat.ready')}
         </p>
 
-        {/* Duration */}
         {status === 'recording' && (
           <p className="text-sm text-text-secondary tabular-nums mb-6">
             {formatDuration(duration)}
           </p>
         )}
 
-        {/* Live transcript */}
         {transcript && (
           <div className="max-w-md text-center px-4 py-3 bg-page-bg rounded-card border border-border">
             <p className="text-xs text-text-secondary uppercase tracking-wider mb-1">
-              You said
+              {t('chat.youSaid')}
             </p>
-            <p className="text-sm text-text-primary italic">
-              "{transcript}"
-            </p>
+            <p className="text-sm text-text-primary italic">"{transcript}"</p>
           </div>
         )}
 
         {!transcript && status === 'recording' && (
-          <p className="text-sm text-text-secondary italic">
-            Speak now in Amharic or English...
-          </p>
+          <p className="text-sm text-text-secondary italic">{t('chat.speakNow')}</p>
         )}
       </div>
 
-      {/* Bottom: Stop button */}
       <div className="flex justify-center pb-12">
         <button
           onClick={handleStop}
           disabled={status !== 'recording'}
-          aria-label="Stop recording"
+          aria-label={t('chat.stopRecording')}
           className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Square size={22} fill="currentColor" />
