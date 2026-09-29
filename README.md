@@ -44,6 +44,7 @@ No login, no account, no second role — one person, one question, one answer.
 ## Features
 
 ### MVP — build and demo this hackathon
+
 - **Voice ask** — citizen speaks their question naturally, no typing required
 - **Voice answer** — spoken response with documents, steps, and fee
 - **Text chat** — the same ask-and-answer flow available by typing, for citizens who prefer it or can't speak aloud in the moment
@@ -52,6 +53,7 @@ No login, no account, no second role — one person, one question, one answer.
 - **Language switch** — toggle between Amharic, Oromiffa, and English, for both voice and text
 
 ### Roadmap — real ideas, not this hackathon's scope
+
 - **Public feedback dashboard** — citizens rate whether an answer was accurate/helpful, visible publicly to build trust over time. Deferred: this adds a second role (moderation), a submissions database, and a feature surface with no direct hackathon scoring value. Worth pursuing post-hackathon if the project continues.
 - **SMS/USSD access** — the same question-and-answer flow over SMS or a USSD menu, for citizens without a smartphone. This is the single most important accessibility gap ServiceVoice doesn't yet close — smartphone ownership is not universal, and USSD reaches basic-phone users the app cannot. Deferred because it requires a second delivery channel and telecom integration outside Voxide, and doesn't touch the hackathon's core voice requirement — but it's the clearest next step for this product to have real reach.
 
@@ -64,13 +66,24 @@ No login, no account, no second role — one person, one question, one answer.
 
 ## Stack
 
-| Requirement | How ServiceVoice uses it |
-|---|---|
-| **Voxide** | Core voice interaction — citizen speaks, app responds aloud. Required and central to the product; text chat is a secondary mode built on the same underlying Q&A engine. |
-| **Scholarxiv** | Used to document our ideation process — how we identified the problem and arrived at this solution. |
-| **Links.et** | Optional — used only for services that carry a real government fee. |
-| **EthioDeploy** | Hosting for the web platform. |
+| Requirement     | How ServiceVoice uses it                                                                                                                                                 |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Voxide**      | Core voice interaction — citizen speaks, app responds aloud. Required and central to the product; text chat is a secondary mode built on the same underlying Q&A engine. |
+| **Scholarxiv**  | Used to document our ideation process — how we identified the problem and arrived at this solution.                                                                      |
+| **Links.et**    | Optional — used only for services that carry a real government fee.                                                                                                      |
+| **EthioDeploy** | Hosting for the web platform.                                                                                                                                            |
 
 ## What Makes This Trustworthy
 
-Every answer ServiceVoice gives — whether spoken or typed  is backed by a cited source, not an AI guess. We scoped to four well-researched services rather than claiming universal coverage, because a wrong answer about government requirements has real cost to a citizen who acts on it.
+Every answer ServiceVoice gives — whether spoken or typed is backed by a cited source, not an AI guess. We scoped to four well-researched services rather than claiming universal coverage, because a wrong answer about government requirements has real cost to a citizen who acts on it.
+
+## Backend Testing
+
+The backend test suite is intentionally credential-free. It uses Node's built-in test runner, an in-memory repository fixture, and injected LLM/STT/TTS mocks. Run it from `Backend`:
+
+```bash
+npm test
+npm run test:coverage
+```
+
+The test plan and the step-by-step implementation map are documented in [Backend/docs/TESTING.md](Backend/docs/TESTING.md). Provider keys belong only in the backend environment; use [Backend/.env.example](Backend/.env.example) as the configuration template and never commit `.env`.
