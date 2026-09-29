@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    container_name: servicevoice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: servicevoice
+      POSTGRES_USER: servicevoice
+      POSTGRES_PASSWORD: servicevoice_local_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - servicevoice-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U servicevoice -d servicevoice"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  servicevoice-postgres-data:
