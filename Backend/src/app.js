@@ -1,72 +1,74 @@
- import express from("express");
- import cors from("cors");
- import helmet from("helmet");
- import morgan from("morgan");
-
- import env from("./config/env");
-
- import {
-  notFoundHandler,
+import express from "express";
+import cors from "cors";
+import env from "./config/env.js";
+import prisma from "./config/prisma.js";
+import { createPrismaRepository } from "./repositories/prisma.repository.js";
+import { createProviderSet } from "./services/providers/index.js";
+import { createEmbeddingService } from "./services/embedding.service.js";
+import { createApiRouter } from "./routes/api.routes.js";
+import { createRagService } from "./services/rag.service.js";
+import { createChatService } from "./services/chat.service.js";
+import { createAuthService } from "./services/auth.service.js";
+import { createVoiceService } from "./services/voice.service.js";
+import { createAuthController } from "./controllers/auth.controller.js";
+import { createChatController } from "./controllers/chat.controller.js";
+import { createServiceController } from "./controllers/service.controller.js";
+import { createVoiceController } from "./controllers/voice.controller.js";
+import {
   errorHandler,
-} from("./middleware/error.middleware");
-
- import serviceRoutes from("./routes/service.routes");
- import woredaRoutes from("./routes/woreda.routes");
- import citationRoutes from("./routes/citation.routes");
- import feedbackRoutes from("./routes/feedback.routes");
- import voiceRoutes from("./routes/voice.routes");
- import smsRoutes from("./routes/sms.routes");
- import analyticsRoutes from("./routes/analytics.routes");
+  notFoundHandler,
+} from "./middleware/error.handler.js";
 
 const app = express();
 
 app.disable("x-powered-by");
 
-app.use(
-  helmet()
-);
-
-app.use(
-  cors({
-    origin:
-      env.frontendUrl === "*"
-        ? "*"
-        : env.frontendUrl,
-  })
-);
-
-app.use(
-  express.json({
-    limit: "1mb",
-  })
-);
-
-app.use(
-  express.urlencoded({
-    extended: true,
-    limit: "1mb",
-  })
-);
-
-if (env.nodeEnv !== "test") {
-  app.use(morgan("combined"));
-}
+app.use(cors({ origin: env.frontendUrl }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Woreda Navigator API is running",
+    message: "ServiceVoice API is running",
     environment: env.nodeEnv,
   });
 });
 
-app.use("/api/services", serviceRoutes);
-app.use("/api/woredas", woredaRoutes);
-app.use("/api/citations", citationRoutes);
-app.use("/api/feedback", feedbackRoutes);
-app.use("/api/voice", voiceRoutes);
-app.use("/api/sms", smsRoutes);
-app.use("/api/analytics", analyticsRoutes);
+const repository = createPrismaRepository(prisma, {
+  vectorDimensions: env.embeddingDimensions,
+});
+const providers = createProviderSet();
+const embeddingService = createEmbeddingService({
+  apiKey: env.embeddingApiKey,
+  apiUrl: env.embeddingApiUrl,
+  model: env.embeddingModel,
+  dimensions: env.embeddingDimensions,
+});
+const ragService = createRagService({
+  serviceRepository: repository,
+  knowledgeRepository: repository,
+  embeddingService,
+});
+const chatService = createChatService({
+  rag: ragService,
+  llm: providers.llm,
+});
+const authService = createAuthService(repository);
+const voiceService = createVoiceService({
+  stt: providers.stt,
+  chat: chatService,
+  tts: providers.tts,
+});
+
+const apiRouter = createApiRouter({
+  serviceController: createServiceController(repository),
+  chatController: createChatController(chatService),
+  authController: createAuthController(authService),
+  voiceController: createVoiceController(voiceService),
+});
+
+app.use("/api", apiRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
