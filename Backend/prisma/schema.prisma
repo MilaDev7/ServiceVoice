@@ -41,23 +41,64 @@ enum ViewType {
   DEPENDENCY_CHECK
 }
 
+enum UserRole {
+  CITIZEN
+  ADMIN
+}
+
+enum KnowledgeType {
+  DESCRIPTION
+  REQUIREMENT
+  PROCEDURE
+  ELIGIBILITY
+  FEE
+  PROCESSING_TIME
+  OFFICE
+  OTHER
+}
+
+enum IndexingStatus {
+  PENDING
+  INDEXED
+  FAILED
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum SourceType {
+  OFFICIAL_REGULATION
+  OFFICIAL_WEBSITE
+  OFFICIAL_DOCUMENT
+  RESEARCH
+  OTHER
+}
+
 model Service {
   id            String          @id @default(uuid())
   slug          String          @unique
   nameAm        String
   nameEn        String
+  nameOm        String
+  nameTi        String
   descriptionAm String?
   descriptionEn String?
+  descriptionOm String?
+  descriptionTi String?
   category      ServiceCategory
   isActive      Boolean         @default(true)
 
-  playbooks    ServicePlaybook[]
-  dependencies ServiceDependency[] @relation("ServiceDependencies")
-  requiredBy   ServiceDependency[] @relation("RequiredServices")
-  citations    Citation[]
-  feedback     Feedback[]
-  voiceQueries VoiceQuery[]
-  serviceViews ServiceViewModel[]
+  playbooks      ServicePlaybook[]
+  dependencies   ServiceDependency[] @relation("ServiceDependencies")
+  requiredBy     ServiceDependency[] @relation("RequiredServices")
+  citations      Citation[]
+  knowledgeUnits KnowledgeUnit[]
+  feedback       Feedback[]
+  voiceQueries   VoiceQuery[]
+  serviceViews   ServiceViewModel[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -126,6 +167,8 @@ model Document {
 
   nameAm       String
   nameEn       String
+  nameOm       String
+  nameTi       String
   isRequired   Boolean @default(true)
   notes        String?
   displayOrder Int     @default(0)
@@ -147,6 +190,8 @@ model Step {
   stepOrder      Int
   instructionAm  String
   instructionEn  String
+  instructionOm  String
+  instructionTi  String
   officeLocation String?
   estimatedTime  String?
 
@@ -204,6 +249,55 @@ model Citation {
   @@index([serviceId])
   @@index([playbookId])
   @@index([documentId])
+}
+
+model Source {
+  id               String     @id @default(uuid())
+  title            String
+  reference        String?    @unique
+  url              String?
+  type             SourceType
+  authority        String?
+  publicationDate  DateTime?
+  verificationNote String?
+  isVerified       Boolean    @default(false)
+
+  knowledgeUnits KnowledgeUnit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([isVerified])
+}
+
+model KnowledgeUnit {
+  id                String            @id @default(uuid())
+  serviceId         String
+  sourceId          String?
+  language          String
+  type              KnowledgeType
+  content           String
+  normalizedContent String?
+  embedding         Unsupported("vector(1536)")?
+  publicationStatus PublicationStatus @default(DRAFT)
+  indexingStatus    IndexingStatus    @default(PENDING)
+  isActive          Boolean           @default(true)
+  publishedAt       DateTime?
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  source  Source? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([serviceId])
+  @@index([language])
+  @@index([type])
+  @@index([publicationStatus])
+  @@index([indexingStatus])
+  @@index([sourceId])
+  @@index([serviceId, language, isActive, publicationStatus, indexingStatus])
 }
 
 model Feedback {
@@ -271,4 +365,27 @@ model ServiceViewModel {
   @@index([serviceId])
   @@index([woredaId])
   @@index([date])
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  role          UserRole       @default(CITIZEN)
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
