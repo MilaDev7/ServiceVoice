@@ -4,8 +4,9 @@ import crypto from "crypto";
 import { env } from "../config/env.js";
 
 import {
-  generateSpeechWithOpenAI
-} from "./open-ai.service.js";
+  generateSpeechWithGemini
+} from "./gemini-audio.service.js";
+
 
 const addis = new AddisAI({
   apiKey: env.ADDIS_API_KEY
@@ -19,7 +20,7 @@ export async function generateSpeech(
     language === "en" ||
     language === "ti"
   ) {
-    return generateSpeechWithOpenAI(
+    return generateSpeechWithGemini(
       text,
       language
     );
