@@ -7,6 +7,43 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String @id @default(uuid())
+  name         String
+  email        String @unique
+  passwordHash String
+
+  isActive Boolean @default(true)
+
+  conversations Conversation[]
+
+  passwordResetTokens PasswordResetToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([isActive])
+}
+
+model PasswordResetToken {
+  id String @id @default(uuid())
+
+  userId String
+
+  tokenHash String @unique
+
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 model Service {
   id          String  @id @default(uuid())
   name        String
@@ -75,10 +112,18 @@ model Conversation {
   id       String @id @default(uuid())
   language String @default("am")
 
+  // NULL means guest conversation.
+  userId String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   messages Message[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model Message {

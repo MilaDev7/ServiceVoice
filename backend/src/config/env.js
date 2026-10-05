@@ -54,7 +54,26 @@ const schema = Joi.object({
     .integer()
     .min(1)
     .max(10)
-    .default(10)
+    .default(10),
+    JWT_ACCESS_SECRET: Joi.string()
+    .min(32)
+    .required(),
+
+  JWT_ACCESS_EXPIRES_IN: Joi.string()
+    .default("15m"),
+
+  JWT_REFRESH_SECRET: Joi.string()
+    .min(32)
+    .required(),
+
+  JWT_REFRESH_EXPIRES_IN: Joi.string()
+    .default("7d"),
+
+  PASSWORD_RESET_EXPIRES_MINUTES: Joi.number()
+    .integer()
+    .min(5)
+    .max(120)
+    .default(30),
 }).unknown();
 
 const { error, value } =

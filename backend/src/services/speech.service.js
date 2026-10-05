@@ -5,8 +5,9 @@ import AddisAI, {
 import { env } from "../config/env.js";
 
 import {
-  transcribeWithOpenAI
-} from "./open-ai.service.js";
+  transcribeWithGemini
+} from "./gemini-audio.service.js";
+
 
 const addis = new AddisAI({
   apiKey: env.ADDIS_API_KEY
@@ -16,9 +17,11 @@ export async function transcribeAudio(
   filePath,
   language
 ) {
-  if (language === "en" ||
-      language === "ti") {
-    return transcribeWithOpenAI(
+    if (
+    language === "en" ||
+    language === "ti"
+  ) {
+    return transcribeWithGemini(
       filePath,
       language
     );

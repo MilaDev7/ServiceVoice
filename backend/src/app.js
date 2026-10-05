@@ -8,6 +8,9 @@ import { env } from "./config/env.js";
 
 import chatRoutes from "./routes/chat.routes.js";
 import voiceRoutes from "./routes/voice.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import historyRoutes from "./routes/history.routes.js";
+
 
 import { errorHandler } from "./middleware/error.middleware.js";
 
@@ -65,7 +68,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/api/auth",authRoutes);
+
 app.use("/api/chat", chatRoutes);
+
+app.use("/api/history",historyRoutes);
 
 app.use("/api/voice/chat", voiceRoutes);
 

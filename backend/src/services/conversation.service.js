@@ -1,32 +1,87 @@
 import { prisma } from "../config/prisma.js";
 
-export async function getOrCreateConversation(
+export async function getOrCreateConversation({
   conversationId,
-  language
-) {
+  language,
+  userId = null
+}) {
+  /*
+   * GUEST
+   *
+   * Do not create a database conversation.
+   */
+  if (!userId) {
+    return {
+      id: null,
+      language,
+      userId: null,
+      isPersistent: false
+    };
+  }
+
+  /*
+   * AUTHENTICATED USER
+   *
+   * Reuse the conversation only if it
+   * belongs to this exact user.
+   */
   if (conversationId) {
     const conversation =
-      await prisma.conversation.findUnique({
+      await prisma.conversation.findFirst({
         where: {
-          id: conversationId
+          id: conversationId,
+          userId
         }
       });
 
     if (conversation) {
-      return conversation;
+      return {
+        ...conversation,
+        isPersistent: true
+      };
     }
   }
 
-  return prisma.conversation.create({
-    data: {
-      language
-    }
-  });
+  const conversation =
+    await prisma.conversation.create({
+      data: {
+        language,
+        userId
+      }
+    });
+
+  return {
+    ...conversation,
+    isPersistent: true
+  };
 }
 
 export async function getConversationHistory(
-  conversationId
+  conversationId,
+  userId
 ) {
+  if (!conversationId || !userId) {
+    return [];
+  }
+
+  /*
+   * Security:
+   *
+   * Verify that the conversation belongs
+   * to the authenticated user.
+   */
+  const conversation =
+    await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        userId
+      }
+    });
+
+  if (!conversation) {
+    return [];
+  }
+
   return prisma.message.findMany({
     where: {
       conversationId
@@ -43,14 +98,38 @@ export async function getConversationHistory(
 export async function saveMessage({
   conversationId,
   role,
-  content
+  content,
+  userId
 }) {
+  /*
+   * Guest conversations are not persisted.
+   */
+  if (!conversationId || !userId) {
+    return null;
+  }
+
+  /*
+   * Make sure the conversation belongs
+   * to the authenticated user.
+   */
+  const conversation =
+    await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        userId
+      }
+    });
+
+  if (!conversation) {
+    throw new Error(
+      "Conversation does not belong to the authenticated user."
+    );
+  }
+
   return prisma.message.create({
     data: {
       conversationId,
-
       role,
-
       content
     }
   });
