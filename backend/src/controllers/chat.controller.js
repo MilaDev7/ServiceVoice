@@ -16,22 +16,20 @@ import {
 
 const schema =
   Joi.object({
-    message:
-      Joi.string()
-        .trim()
-        .min(1)
-        .max(4000)
-        .required(),
+    message: Joi.string()
+      .trim()
+      .min(1)
+      .max(4000)
+      .required(),
 
-    language:
-      Joi.string()
-        .valid(
-          "am",
-          "om",
-          "en",
-          "ti"
-        )
-        .required(),
+    language: Joi.string()
+      .valid(
+        "am",
+        "om",
+        "en",
+        "ti"
+      )
+      .required(),
 
     conversationId:
       Joi.string()
@@ -48,14 +46,14 @@ export async function chat(
     const {
       error,
       value
-    } = schema.validate(
-      req.body
-    );
+    } =
+      schema.validate(
+        req.body
+      );
 
     if (error) {
       return res.status(400).json({
         success: false,
-
         message:
           error.details[0].message
       });
@@ -67,20 +65,42 @@ export async function chat(
       conversationId
     } = value;
 
+    /*
+     * If authenticated:
+     *
+     * req.user.id
+     *
+     * If guest:
+     *
+     * undefined
+     */
+    const userId =
+      req.user?.id || null;
+
     console.log(
-      `[CHAT] language=${language}`
+      "CHAT USER:",
+      userId || "GUEST"
+    );
+
+    console.log(
+      "CHAT LANGUAGE:",
+      language
     );
 
     const conversation =
-      await getOrCreateConversation(
+      await getOrCreateConversation({
         conversationId,
-        language
-      );
+        language,
+        userId
+      });
 
     const history =
-      await getConversationHistory(
-        conversation.id
-      );
+      conversation.isPersistent
+        ? await getConversationHistory(
+            conversation.id,
+            userId
+          )
+        : [];
 
     const {
       service,
@@ -94,53 +114,60 @@ export async function chat(
     const answer =
       await generateAnswer({
         question: message,
-
         language,
-
         context,
-
         history
       });
 
-    await saveMessage({
-      conversationId:
-        conversation.id,
+    /*
+     * Only authenticated users
+     * reach this persistence section.
+     */
+    if (conversation.isPersistent) {
+      await saveMessage({
+        conversationId:
+          conversation.id,
+        role: "user",
+        content: message,
+        userId
+      });
 
-      role: "user",
-
-      content: message
-    });
-
-    await saveMessage({
-      conversationId:
-        conversation.id,
-
-      role: "assistant",
-
-      content: answer
-    });
+      await saveMessage({
+        conversationId:
+          conversation.id,
+        role: "assistant",
+        content: answer,
+        userId
+      });
+    }
 
     return res.json({
       success: true,
 
       data: {
+        /*
+         * Guests receive null.
+         *
+         * Authenticated users receive
+         * their conversation ID.
+         */
         conversationId:
-          conversation.id,
+          conversation.isPersistent
+            ? conversation.id
+            : null,
 
-        language,
+        persistent:
+          conversation.isPersistent,
 
         answer,
 
-        service:
-          service
-            ? {
-                id: service.id,
-
-                name: service.name,
-
-                slug: service.slug
-              }
-            : null
+        service: service
+          ? {
+              id: service.id,
+              name: service.name,
+              slug: service.slug
+            }
+          : null
       }
     });
   } catch (error) {
