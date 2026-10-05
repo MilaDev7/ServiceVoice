@@ -23,15 +23,22 @@ import {
   saveMessage
 } from "../services/conversation.service.js";
 
-const schema = Joi.object({
-  language: Joi.string()
-    .valid("am", "om", "en", "ti")
-    .default("am"),
+const schema =
+  Joi.object({
+    language: Joi.string()
+      .valid(
+        "am",
+        "om",
+        "en",
+        "ti"
+      )
+      .required(),
 
-  conversationId: Joi.string()
-    .uuid()
-    .optional()
-});
+    conversationId:
+      Joi.string()
+        .uuid()
+        .optional()
+  });
 
 export async function voiceChat(
   req,
@@ -41,12 +48,6 @@ export async function voiceChat(
   let uploadedFile = null;
 
   try {
-    /*
-     * -------------------------------------------------------
-     * Validate uploaded audio
-     * -------------------------------------------------------
-     */
-
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -57,22 +58,17 @@ export async function voiceChat(
 
     uploadedFile = req.file;
 
-    /*
-     * -------------------------------------------------------
-     * Validate request
-     * -------------------------------------------------------
-     */
-
     const {
       error,
       value
-    } = schema.validate({
-      language:
-        req.body.language,
+    } =
+      schema.validate({
+        language:
+          req.body.language,
 
-      conversationId:
-        req.body.conversationId
-    });
+        conversationId:
+          req.body.conversationId
+      });
 
     if (error) {
       return res.status(400).json({
@@ -87,37 +83,37 @@ export async function voiceChat(
       conversationId
     } = value;
 
+    const userId =
+      req.user?.id || null;
+
+    console.log(
+      "VOICE USER:",
+      userId || "GUEST"
+    );
+
     console.log(
       "VOICE LANGUAGE:",
       language
     );
 
-    /*
-     * -------------------------------------------------------
-     * Conversation
-     * -------------------------------------------------------
-     */
-
     const conversation =
-      await getOrCreateConversation(
+      await getOrCreateConversation({
         conversationId,
-        language
-      );
+        language,
+        userId
+      });
 
     const history =
-      await getConversationHistory(
-        conversation.id
-      );
+      conversation.isPersistent
+        ? await getConversationHistory(
+            conversation.id,
+            userId
+          )
+        : [];
 
     /*
-     * -------------------------------------------------------
-     * 1. Speech -> text
-     *
-     * AM/OM -> AddisAI
-     * EN/TI -> Gemini
-     * -------------------------------------------------------
+     * Voice -> text
      */
-
     const transcription =
       await transcribeAudio(
         uploadedFile.path,
@@ -127,17 +123,9 @@ export async function voiceChat(
     const question =
       transcription.text;
 
-    console.log(
-      "VOICE TRANSCRIPT:",
-      question
-    );
-
     /*
-     * -------------------------------------------------------
-     * 2. Retrieve database information
-     * -------------------------------------------------------
+     * Database retrieval
      */
-
     const {
       service,
       context
@@ -148,215 +136,90 @@ export async function voiceChat(
       );
 
     /*
-     * -------------------------------------------------------
-     * 3. Generate answer
+     * AI
      *
-     * AM/OM -> AddisAI
-     * EN/TI -> OpenAI
-     * -------------------------------------------------------
+     * The AI selection remains:
+     *
+     * am/om -> Addis AI
+     * en/ti -> OpenAI
      */
-
     const answer =
       await generateAnswer({
         question,
-
         language,
-
         context,
-
         history
       });
 
     /*
-     * -------------------------------------------------------
-     * 4. Save conversation
-     * -------------------------------------------------------
+     * Save ONLY for authenticated users.
      */
+    if (conversation.isPersistent) {
+      await saveMessage({
+        conversationId:
+          conversation.id,
+        role: "user",
+        content: question,
+        userId
+      });
 
-    await saveMessage({
-      conversationId:
-        conversation.id,
-
-      role: "user",
-
-      content: question
-    });
-
-    await saveMessage({
-      conversationId:
-        conversation.id,
-
-      role: "assistant",
-
-      content: answer
-    });
+      await saveMessage({
+        conversationId:
+          conversation.id,
+        role: "assistant",
+        content: answer,
+        userId
+      });
+    }
 
     /*
-     * -------------------------------------------------------
-     * 5. Text -> speech
-     *
-     * AM/OM -> AddisAI
-     * EN/TI -> Gemini
-     * -------------------------------------------------------
+     * Text -> speech
      */
-
     const speech =
       await generateSpeech(
         answer,
         language
       );
 
-    /*
-     * -------------------------------------------------------
-     * 6. Gemini returns Buffer
-     *
-     * We temporarily expose the audio through
-     * a backend route.
-     *
-     * AddisAI already returns audioUrl.
-     * -------------------------------------------------------
-     */
-
-    if (speech.buffer) {
-      const audioId =
-        crypto.randomUUID();
-
-      /*
-       * Store the generated audio
-       * temporarily.
-       *
-       * Your production version should use
-       * object storage such as Cloudinary or S3.
-       */
-
-      const audioDirectory =
-        "./uploads/generated";
-
-      await fs.mkdir(
-        audioDirectory,
-        {
-          recursive: true
-        }
-      );
-
-      const extension =
-        speech.contentType ===
-        "audio/wav"
-          ? "wav"
-          : "mp3";
-
-      const audioPath =
-        `${audioDirectory}/${audioId}.${extension}`;
-
-      await fs.writeFile(
-        audioPath,
-        speech.buffer
-      );
-
-      const audioUrl =
-        `${process.env.BACKEND_URL}/api/audio/${audioId}.${extension}`;
-
-      return res.json({
-        success: true,
-
-        data: {
-          conversationId:
-            conversation.id,
-
-          transcription: {
-            text: question,
-
-            confidence:
-              transcription.confidence
-          },
-
-          answer,
-
-          audio: {
-            id: audioId,
-
-            audioUrl,
-
-            usage:
-              speech.usage ?? null
-          },
-
-          service: service
-            ? {
-                id: service.id,
-
-                name:
-                  service.name,
-
-                slug:
-                  service.slug
-              }
-            : null
-        }
-      });
-    }
-
-    /*
-     * -------------------------------------------------------
-     * AddisAI audio URL
-     * -------------------------------------------------------
-     */
-
     return res.json({
       success: true,
 
       data: {
         conversationId:
-          conversation.id,
+          conversation.isPersistent
+            ? conversation.id
+            : null,
+
+        persistent:
+          conversation.isPersistent,
 
         transcription: {
           text: question,
-
           confidence:
             transcription.confidence
         },
 
         answer,
 
-        audio: {
-          id: speech.id,
-
-          audioUrl:
-            speech.audioUrl,
-
-          usage:
-            speech.usage
-        },
+        audio: speech,
 
         service: service
           ? {
               id: service.id,
-
-              name:
-                service.name,
-
-              slug:
-                service.slug
+              name: service.name,
+              slug: service.slug
             }
           : null
       }
     });
   } catch (error) {
-    console.error(
-      "VOICE CHAT ERROR:",
-      error
-    );
-
     next(error);
   } finally {
-    /*
-     * Delete uploaded microphone
-     * recording.
-     */
-
     if (uploadedFile?.path) {
       await fs
-        .unlink(uploadedFile.path)
+        .unlink(
+          uploadedFile.path
+        )
         .catch(() => {});
     }
   }
