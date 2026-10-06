@@ -11,9 +11,13 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor — add common headers, logging in dev
+// Request interceptor — attach token, log in dev
 api.interceptors.request.use(
   (config) => {
+    const token = localStorage.getItem('sv_auth_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     if (import.meta.env.DEV) {
       console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     }
@@ -21,7 +25,6 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-
 // Response interceptor — normalize errors
 api.interceptors.response.use(
   (response) => response.data,

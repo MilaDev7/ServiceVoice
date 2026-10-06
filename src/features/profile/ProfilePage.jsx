@@ -1,9 +1,21 @@
-import { Sun, Moon, Trash2, Shield } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Sun,
+  Moon,
+  Trash2,
+  Shield,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  Mail,
+} from 'lucide-react';
 import ProfileSection from './components/ProfileSection';
 import PreferenceRow from './components/PreferenceRow';
 import { usePreferences } from '../settings/hooks/usePreferences';
 import { LANGUAGES, WOREDAS } from '../../app/providers';
 import { useTranslation } from '../../i18n';
+import { useAuth } from '../auth/components/AuthProvider';
+import AuthModal from '../auth/components/AuthModal';
 
 function ProfilePage() {
   const {
@@ -20,6 +32,9 @@ function ProfilePage() {
   } = usePreferences();
 
   const { t } = useTranslation();
+  const { user, isAuthenticated, signOut } = useAuth();
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const handleClearData = () => {
     const confirmed = window.confirm(
@@ -31,6 +46,12 @@ function ProfilePage() {
     }
   };
 
+  const handleSignOut = async () => {
+    const confirmed = window.confirm('Sign out? Your local chats stay on this device.');
+    if (!confirmed) return;
+    await signOut();
+  };
+
   const toggleNotification = (key) => {
     setNotifications({ ...notifications, [key]: !notifications[key] });
   };
@@ -38,24 +59,111 @@ function ProfilePage() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">{t('profile.title')}</h1>
-        <p className="text-sm text-text-secondary mt-1">{t('profile.subtitle')}</p>
+        <h1 className="text-2xl font-bold text-text-primary">
+          {t('profile.title')}
+        </h1>
+        <p className="text-sm text-text-secondary mt-1">
+          {t('profile.subtitle')}
+        </p>
       </div>
 
       <div className="space-y-4">
-        <ProfileSection title={t('profile.yourPrefs')} description={t('profile.prefsDesc')}>
+        {/* ── Account ─────────────────────────────── */}
+        <ProfileSection
+          title="Account"
+          description={
+            isAuthenticated
+              ? 'Signed in — your chats sync across devices.'
+              : 'Sign in to sync your chats across devices. Optional.'
+          }
+        >
+          {isAuthenticated ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-primary-light rounded-card">
+                <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <UserIcon size={20} className="text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-text-primary truncate">
+                    {user?.email || 'Signed in'}
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Your history syncs automatically
+                  </p>
+                </div>
+              </div>
+
+              <PreferenceRow
+                label="Sign out"
+                description="You can continue as a guest after signing out"
+              >
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-border text-text-primary text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <LogOut size={14} />
+                  Sign out
+                </button>
+              </PreferenceRow>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-page-bg rounded-card">
+                <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                  <UserIcon size={20} className="text-text-secondary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-text-primary">
+                    Guest mode
+                  </p>
+                  <p className="text-xs text-text-secondary">
+                    Chats stay on this device only
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white rounded-btn py-2.5 font-medium transition-colors"
+              >
+                <LogIn size={16} />
+                Sign in or create account
+              </button>
+
+              <p className="text-[11px] text-text-secondary text-center">
+                Optional — ServiceVoice works fully without an account.
+              </p>
+            </div>
+          )}
+        </ProfileSection>
+
+        {/* ── Your preferences ─────────────────────── */}
+        <ProfileSection
+          title={t('profile.yourPrefs')}
+          description={t('profile.prefsDesc')}
+        >
           <div className="flex items-center gap-4 p-4 bg-primary-light rounded-card">
             <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
               <span className="text-white font-semibold text-lg">U</span>
             </div>
             <div>
-              <p className="font-semibold text-text-primary">{t('profile.anonymousUser')}</p>
-              <p className="text-xs text-text-secondary">{t('profile.anonymousDesc')}</p>
+              <p className="font-semibold text-text-primary">
+                {isAuthenticated ? user?.email : t('profile.anonymousUser')}
+              </p>
+              <p className="text-xs text-text-secondary">
+                {isAuthenticated
+                  ? 'Signed in'
+                  : t('profile.anonymousDesc')}
+              </p>
             </div>
           </div>
         </ProfileSection>
 
-        <ProfileSection title={t('profile.language')} description={t('profile.languageDesc')}>
+        {/* Language */}
+        <ProfileSection
+          title={t('profile.language')}
+          description={t('profile.languageDesc')}
+        >
           <PreferenceRow
             label={t('profile.preferredLang')}
             description={`${t('profile.currently')}: ${currentLanguage.label}`}
@@ -79,7 +187,11 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
-        <ProfileSection title={t('profile.location')} description={t('profile.locationDesc')}>
+        {/* Woreda */}
+        <ProfileSection
+          title={t('profile.location')}
+          description={t('profile.locationDesc')}
+        >
           <PreferenceRow
             label={t('profile.yourWoreda')}
             description={`${t('profile.currently')}: ${currentWoreda.name}`}
@@ -98,8 +210,15 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
-        <ProfileSection title={t('profile.appearance')} description={t('profile.appearanceDesc')}>
-          <PreferenceRow label={t('profile.theme')} description={`${t('profile.currently')}: ${theme}`}>
+        {/* Theme */}
+        <ProfileSection
+          title={t('profile.appearance')}
+          description={t('profile.appearanceDesc')}
+        >
+          <PreferenceRow
+            label={t('profile.theme')}
+            description={`${t('profile.currently')}: ${theme}`}
+          >
             <div className="flex items-center bg-page-bg rounded-pill p-0.5">
               <button
                 onClick={() => setTheme('light')}
@@ -129,6 +248,7 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
+        {/* Notifications */}
         <ProfileSection
           title={t('profile.notifications')}
           description={t('profile.notificationsDesc')}
@@ -164,6 +284,7 @@ function ProfilePage() {
           </PreferenceRow>
         </ProfileSection>
 
+        {/* Data & privacy */}
         <ProfileSection
           title={t('profile.dataPrivacy')}
           description={t('profile.dataPrivacyDesc')}
@@ -193,6 +314,13 @@ function ProfilePage() {
           ServiceVoice · Hackathon build · v0.1
         </p>
       </div>
+
+      {/* Auth modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode="signin"
+      />
     </div>
   );
 }

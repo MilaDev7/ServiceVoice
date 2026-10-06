@@ -4,3 +4,4 @@ export { serviceService } from './serviceService';
 export { voiceService } from './voiceService';
 export { feedbackService } from './feedbackService';
 export { smsService } from './smsService';
+export { authService } from '../features/auth/services/authService';

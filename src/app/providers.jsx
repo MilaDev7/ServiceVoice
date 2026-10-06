@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect } from 'react';
 import { useLocalStorage } from '../shared/hooks/useLocalStorage';
-
+import { AuthProvider } from '../features/auth/components/AuthProvider';
 const AppContext = createContext(null);
 
 export const LANGUAGES = [
@@ -45,8 +45,11 @@ export function AppProvider({ children }) {
     notifications,
     setNotifications,
   };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+return (
+  <AuthProvider>
+    <AppContext.Provider value={value}>{children}</AppContext.Provider>
+  </AuthProvider>
+);
 }
 
 export function useApp() {
