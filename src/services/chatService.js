@@ -3,33 +3,59 @@ import api from './api';
 export const chatService = {
   /**
    * Send a text message and get a bot reply.
-   * @param {{ message: string, conversationId?: string, language?: string, woredaId?: string }} payload
+   * Backend: POST /api/chat
+   * Body: { message, language, conversationId? }
+   * Response: { success, data: { conversationId, persistent, answer, service } }
    */
-  sendMessage: (payload) => api.post('/chat', payload),
+  sendMessage: async ({ message, conversationId, language = 'am' }) => {
+    const res = await api.post('/chat', {
+      message,
+      language,
+      conversationId: conversationId || undefined,
+    });
+    return res.data; // { conversationId, persistent, answer, service }
+  },
 
   /**
-   * List all conversations (signed-in users only).
+   * List conversations for signed-in user.
+   * Backend: GET /api/history
+   * Response: { success, data: { conversations } }
    */
-  listConversations: () => api.get('/chat/conversations'),
+  listConversations: async () => {
+    const res = await api.get('/history');
+    return res.data; // { conversations }
+  },
 
   /**
-   * Get a single conversation with messages.
+   * No specific single-conversation endpoint in backend.
+   * We fetch the whole list and filter. Alternatively, could add later.
    */
-  getConversation: (id) => api.get(`/chat/conversations/${id}`),
+  getConversation: async (id) => {
+    const { conversations } = await chatService.listConversations();
+    return conversations.find((c) => c.id === id) || null;
+  },
 
   /**
-   * Create or update a conversation (upsert).
-   * @param {{ id?: string, title: string, messages: Array }} payload
+   * ⚠️ Backend does NOT expose POST /history/conversations.
+   * Conversations are created automatically via /chat when authenticated.
+   * So this becomes a no-op for now (or remove entirely).
    */
-  saveConversation: (payload) => api.post('/chat/conversations', payload),
+  saveConversation: async () => {
+    console.warn('[chatService] saveConversation is a no-op — backend auto-creates on /chat');
+    return null;
+  },
 
   /**
-   * Delete a single conversation.
+   * ⚠️ Backend does NOT expose DELETE /history/:id.
+   * Removing this from frontend for now.
    */
-  deleteConversation: (id) => api.delete(`/chat/conversations/${id}`),
+  deleteConversation: async () => {
+    console.warn('[chatService] deleteConversation not supported by backend');
+    return null;
+  },
 
-  /**
-   * Delete ALL conversations for the signed-in user.
-   */
-  deleteAllConversations: () => api.delete('/chat/conversations'),
+  deleteAllConversations: async () => {
+    console.warn('[chatService] deleteAllConversations not supported by backend');
+    return null;
+  },
 };
