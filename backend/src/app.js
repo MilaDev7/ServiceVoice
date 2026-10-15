@@ -25,11 +25,11 @@ app.use(
 app.use(
   cors({
     origin: env.FRONTEND_URL,
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"]
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],   
+    credentials: true
   })
 );
-
 app.use(
   express.json({
     limit: "1mb"
