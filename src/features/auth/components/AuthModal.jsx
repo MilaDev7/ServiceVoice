@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, Eye, EyeOff, Loader2, User } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { useTranslation } from '../../../i18n';
 
@@ -8,6 +8,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   const { t } = useTranslation();
 
   const [mode, setMode] = useState(initialMode); // 'signin' | 'signup'
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -19,6 +20,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
+      setName('');
       setEmail('');
       setPassword('');
       setConfirmPassword('');
@@ -28,17 +30,17 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     }
   }, [isOpen, initialMode, clearError]);
 
-  // Escape key
+  // Escape key closes
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !isSubmitting) onClose();
     };
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, isSubmitting]);
 
-  // Body scroll lock
+  // Lock body scroll
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -51,9 +53,13 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   }, [isOpen]);
 
   const validate = () => {
+    if (mode === 'signup') {
+      if (!name.trim()) return 'Full name is required.';
+      if (name.trim().length < 2) return 'Name must be at least 2 characters.';
+    }
     if (!email.trim()) return 'Email is required.';
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) return 'Enter a valid email.';
-    if (password.length < 6) return 'Password must be at least 6 characters.';
+    if (password.length < 8) return 'Password must be at least 8 characters.';
     if (mode === 'signup' && password !== confirmPassword) {
       return 'Passwords do not match.';
     }
@@ -73,13 +79,19 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     setIsSubmitting(true);
     try {
       if (mode === 'signup') {
-        await signUp(email.trim(), password);
+        await signUp({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        });
       } else {
-        await signIn(email.trim(), password);
+        await signIn({
+          email: email.trim().toLowerCase(),
+          password,
+        });
       }
       onClose();
     } catch (err) {
-      // Error is set in AuthProvider; local shows too
       setLocalError(err.message || 'Something went wrong.');
     } finally {
       setIsSubmitting(false);
@@ -99,7 +111,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
-      onClick={onClose}
+      onClick={isSubmitting ? undefined : onClose}
       role="dialog"
       aria-modal="true"
       aria-label={mode === 'signin' ? 'Sign in' : 'Create account'}
@@ -115,7 +127,8 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           </h2>
           <button
             onClick={onClose}
-            className="p-1 text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+            disabled={isSubmitting}
+            className="p-1 text-text-secondary hover:text-text-primary hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50"
             aria-label="Close"
           >
             <X size={18} />
@@ -124,6 +137,34 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Name — signup only */}
+          {mode === 'signup' && (
+            <div>
+              <label
+                htmlFor="auth-name"
+                className="block text-xs font-medium text-text-primary mb-1.5"
+              >
+                Full name
+              </label>
+              <div className="relative">
+                <User
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
+                />
+                <input
+                  id="auth-name"
+                  type="text"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                  disabled={isSubmitting}
+                  className="w-full pl-9 pr-3 py-2.5 text-sm rounded-btn border border-border bg-page-bg text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary-border focus:ring-1 focus:ring-primary-border disabled:opacity-50"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Email */}
           <div>
             <label
@@ -169,7 +210,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
+                placeholder="••••••••"
                 disabled={isSubmitting}
                 className="w-full pl-9 pr-10 py-2.5 text-sm rounded-btn border border-border bg-page-bg text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary-border focus:ring-1 focus:ring-primary-border disabled:opacity-50"
               />
@@ -178,16 +219,17 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             <p className="text-[11px] text-text-secondary mt-1">
-              At least 6 characters
+              At least 8 characters
             </p>
           </div>
 
-          {/* Confirm password (signup only) */}
+          {/* Confirm password — signup only */}
           {mode === 'signup' && (
             <div>
               <label
@@ -207,7 +249,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••"
+                  placeholder="••••••••"
                   disabled={isSubmitting}
                   className="w-full pl-9 pr-3 py-2.5 text-sm rounded-btn border border-border bg-page-bg text-text-primary placeholder:text-text-secondary focus:outline-none focus:border-primary-border focus:ring-1 focus:ring-primary-border disabled:opacity-50"
                 />

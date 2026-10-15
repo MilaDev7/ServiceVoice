@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+const TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 30000;
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -11,7 +11,9 @@ export const api = axios.create({
   },
 });
 
-// Request interceptor — attach token, log in dev
+// ─────────────────────────────────────────────
+// Request interceptor — attach token + log
+// ─────────────────────────────────────────────
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('sv_auth_token');
@@ -25,25 +27,51 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-// Response interceptor — normalize errors
+
+// ─────────────────────────────────────────────
+// Response interceptor — unwrap { success, data }
+// ─────────────────────────────────────────────
 api.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const payload = response.data;
+
+    // Backend standard envelope: { success: true, data: {...} }
+    if (
+      payload &&
+      typeof payload === 'object' &&
+      'success' in payload
+    ) {
+      if (payload.success === true) {
+        // Return the inner data — services get clean objects
+        return payload.data;
+      }
+      // Backend said success:false but returned 200 — treat as error
+      const message = payload.message || 'Request failed';
+      return Promise.reject({ status: response.status, message });
+    }
+
+    // Fallback: non-enveloped response
+    return payload;
+  },
   (error) => {
+    const status = error.response?.status;
     const message =
       error.response?.data?.message ||
+      error.response?.data?.error ||
       error.message ||
       'Something went wrong';
-    const status = error.response?.status;
+
+    // Auto-clear tokens on auth failure
+    if (status === 401) {
+      localStorage.removeItem('sv_auth_token');
+      localStorage.removeItem('sv_refresh_token');
+    }
 
     if (import.meta.env.DEV) {
       console.error(`[API ERROR] ${status || 'NETWORK'}: ${message}`);
     }
 
-    return Promise.reject({
-      status,
-      message,
-      original: error,
-    });
+    return Promise.reject({ status, message, original: error });
   }
 );
 
