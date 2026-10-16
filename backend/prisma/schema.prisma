@@ -143,3 +143,17 @@ enum MessageRole {
   user
   assistant
 }
+model AnonymousFeedback {
+  id           String   @id @default(uuid())
+  serviceId    String?
+  woredaId     String?
+  feedbackType String   @default("other")
+  content      String
+  language     String   @default("am")
+  audioUrl     String?
+  createdAt    DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([feedbackType])
+  @@index([createdAt])
+}

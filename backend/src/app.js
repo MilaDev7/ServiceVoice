@@ -10,6 +10,7 @@ import chatRoutes from "./routes/chat.routes.js";
 import voiceRoutes from "./routes/voice.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import historyRoutes from "./routes/history.routes.js";
+import feedbackRoutes from "./routes/feedback.routes.js";
 
 
 import { errorHandler } from "./middleware/error.middleware.js";
@@ -79,5 +80,6 @@ app.use("/api/history",historyRoutes);
 app.use("/api/voice/chat", voiceRoutes);
 
 app.use(errorHandler);
+app.use("/api/feedback", feedbackRoutes);
 
 export default app;
