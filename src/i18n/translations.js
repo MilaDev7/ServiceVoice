@@ -69,7 +69,11 @@ export const translations = {
     'dashboard.byService': 'በአገልግሎት',
     'dashboard.byWoreda': 'በወረዳ',
     'dashboard.byType': 'የግብረመልስ ዓይነቶች',
+    'dashboard.viewReports': 'ሪፖርቶችን ለማየት ይንኩ',
+'dashboard.anonymousReports': 'ስም-አልባ ሪፖርቶች',
+'dashboard.newestFirst': 'አዲስ በመጀመሪያ',
     'dashboard.privacy':
+    
       'ሁሉም ሪፖርቶች ስም-አልባ ናቸው። ስም፣ ስልክ ቁጥር ወይም መለያ መረጃ አንሰበስብም።',
 
     // Profile
@@ -184,6 +188,7 @@ export const translations = {
     'feedback.skip': 'Skip',
     'feedback.submit': 'Submit',
     'feedback.charCount': 'characters',
+    
 
     // Dashboard
     'dashboard.title': 'Public Dashboard',
@@ -198,7 +203,11 @@ export const translations = {
     'dashboard.byService': 'Reports by Service',
     'dashboard.byWoreda': 'Reports by Woreda',
     'dashboard.byType': 'Feedback Types',
+    'dashboard.viewReports': 'Click to view reports',
+'dashboard.anonymousReports': 'Anonymous Reports',
+'dashboard.newestFirst': 'Newest first',
     'dashboard.privacy':
+
       'All reports are anonymous. We never collect names, phone numbers, or identifying information.',
 
     // Profile

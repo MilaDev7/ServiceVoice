@@ -10,6 +10,7 @@ import { usePreferences } from '../settings/hooks/usePreferences';
 import { useTranslation } from '../../i18n';
 import { chatService } from '../../services/chatService';
 import { useAuth } from '../auth/components/AuthProvider';
+import { feedbackService } from '../../services/feedbackService';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,7 +22,12 @@ function ChatPage() {
   const { sessionId: urlSessionId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { saveSession, getSession, refresh: refreshHistory } = useChatHistory();
+  const {
+    saveSession,
+    getSession,
+    refresh: refreshHistory,
+    isLoading: historyLoading,
+  } = useChatHistory();
   const { language } = usePreferences();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
@@ -33,7 +39,6 @@ function ChatPage() {
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const hasHandledQuery = useRef(false);
 
-  // Refs to avoid effect loops
   const getSessionRef = useRef(getSession);
   useEffect(() => {
     getSessionRef.current = getSession;
@@ -44,21 +49,30 @@ function ChatPage() {
     saveSessionRef.current = saveSession;
   }, [saveSession]);
 
-  // Load session when URL changes
+  // ─────────────────────────────────────────────
+  // Load session when URL changes AND history is loaded
+  // ─────────────────────────────────────────────
   useEffect(() => {
+    if (historyLoading) return;
+
     if (urlSessionId) {
       const existing = getSessionRef.current(urlSessionId);
-      if (existing) {
+      if (existing && existing.messages) {
         setSessionId(existing.id);
-        setMessages(existing.messages || []);
+        setMessages(existing.messages);
         return;
       }
     }
-    setSessionId(urlSessionId || null);
-    setMessages([]);
-  }, [urlSessionId]);
 
-  // Save to localStorage (guest only — authed users auto-saved by backend)
+    setSessionId(urlSessionId || null);
+    if (!urlSessionId) {
+      setMessages([]);
+    }
+  }, [urlSessionId, historyLoading]);
+
+  // ─────────────────────────────────────────────
+  // Save to localStorage (guest only)
+  // ─────────────────────────────────────────────
   useEffect(() => {
     if (messages.length === 0) return;
     if (isAuthenticated) return;
@@ -79,19 +93,24 @@ function ChatPage() {
       createdAt: messages[0]?.timestamp || new Date().toISOString(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, isAuthenticated]);
+  }, [messages, isAuthenticated, sessionId, urlSessionId]);
 
+  // ─────────────────────────────────────────────
   // Fallback bot reply
-  const generateFallbackReply = useCallback((text) => {
-    return {
+  // ─────────────────────────────────────────────
+  const generateFallbackReply = useCallback(
+    () => ({
       id: `bot-${Date.now()}`,
       role: 'bot',
       content: `I couldn't reach the server. Please check your connection and try again.`,
       timestamp: new Date().toISOString(),
-    };
-  }, []);
+    }),
+    []
+  );
 
+  // ─────────────────────────────────────────────
   // Send message — REAL backend integration
+  // ─────────────────────────────────────────────
   const sendUserMessage = useCallback(
     async (text) => {
       const newMessage = {
@@ -113,7 +132,6 @@ function ChatPage() {
           language: language || 'am',
         });
 
-        // res: { conversationId, persistent, answer, service }
         const botMessage = {
           id: `bot-${Date.now()}`,
           role: 'bot',
@@ -135,7 +153,7 @@ function ChatPage() {
         }
       } catch (err) {
         console.error('[chat] send failed:', err);
-        setMessages((prev) => [...prev, generateFallbackReply(text)]);
+        setMessages((prev) => [...prev, generateFallbackReply()]);
       } finally {
         setIsThinking(false);
       }
@@ -143,7 +161,9 @@ function ChatPage() {
     [sessionId, urlSessionId, language, navigate, refreshHistory, generateFallbackReply, isAuthenticated]
   );
 
+  // ─────────────────────────────────────────────
   // Handle ?q= from ServicesPage
+  // ─────────────────────────────────────────────
   useEffect(() => {
     const query = searchParams.get('q');
     if (query && !hasHandledQuery.current) {
@@ -154,16 +174,32 @@ function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
+  // ─────────────────────────────────────────────
+  // Handlers
+  // ─────────────────────────────────────────────
   const handleActionClick = (action) => {
     console.log('Quick action clicked:', action.label);
     setIsFeedbackOpen(true);
   };
+
   const handleSmsClick = () => console.log('SMS requested');
   const handleSend = (text) => sendUserMessage(text);
   const handleVoiceTranscript = (transcript) => sendUserMessage(transcript);
   const handleMicClick = () => setIsVoiceOpen(true);
   const handleAttachClick = () => console.log('Attach clicked');
-  const handleFeedbackSubmit = (p) => console.log('Feedback:', p);
+
+  const handleFeedbackSubmit = async (payload) => {
+    try {
+      await feedbackService.submit({
+        content: payload.text || '(voice feedback — transcript pending)',
+        feedbackType: 'other',
+        language: 'am',
+      });
+    } catch (err) {
+      console.error('[feedback] submission failed:', err);
+      throw err;
+    }
+  };
 
   return (
     <div className="h-full min-h-0 flex flex-col relative">

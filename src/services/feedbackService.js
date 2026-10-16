@@ -1,22 +1,17 @@
 import api from './api';
 
 export const feedbackService = {
-  /**
-   * Submit text feedback (anonymous).
-   * @param {{ serviceId?: string, woredaId?: string, text: string, type?: string }} payload
-   */
-  submit: (payload) => api.post('/feedback', payload),
+  submit: async ({ content, feedbackType = 'other', language = 'am', serviceId, woredaId }) => {
+    return api.post('/feedback', {
+      content,
+      feedbackType,
+      language,
+      serviceId,
+      woredaId,
+    });
+  },
 
-  /**
-   * Get public dashboard aggregate stats.
-   * @param {{ serviceId?: string, woredaId?: string }} filters
-   */
-  getDashboard: (filters = {}) =>
-    api.get('/feedback/dashboard', { params: filters }),
-
-  /**
-   * Get aggregated feedback for a specific service.
-   * @param {string} serviceId
-   */
-  getByService: (serviceId) => api.get(`/feedback/service/${serviceId}`),
+  getDashboard: async () => {
+    return api.get('/feedback/dashboard');
+  },
 };

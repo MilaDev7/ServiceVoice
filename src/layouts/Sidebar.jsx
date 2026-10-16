@@ -1,34 +1,41 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { MessageSquarePlus, MessageSquare, Clock, Star, User, X } from 'lucide-react';
+import {
+  MessageSquarePlus,
+  MessageSquare,
+  Clock,
+  Star,
+  User,
+  X,
+  Megaphone,
+} from 'lucide-react';
 import { ROUTES } from '../constants/routes';
 import { clsx } from 'clsx';
 import { useTranslation } from '../i18n';
+import RecentChatsList from '../features/history/components/RecentChatsList';
 
 const NAV_ITEMS = [
-  { to: ROUTES.CHAT, label: 'Chat', icon: MessageSquare, end: true },
-  { to: ROUTES.SERVICES, label: 'Services', icon: Star },
-  { to: ROUTES.DASHBOARD, label: 'Dashboard', icon: Clock },
-  { to: ROUTES.PROFILE, label: 'Profile', icon: User },
+  { to: ROUTES.CHAT, labelKey: 'nav.chat', icon: MessageSquare, end: true },
+  { to: ROUTES.SERVICES, labelKey: 'nav.services', icon: Star },
+  { to: ROUTES.DASHBOARD, labelKey: 'nav.dashboard', icon: Clock },
+  { to: ROUTES.PROFILE, labelKey: 'nav.profile', icon: User },
 ];
 
-const PLACEHOLDER_RECENT = [
-  { id: '1', title: 'Birth certificate process', time: 'Today, 9:41 AM' },
-  { id: '2', title: 'Kebele ID requirements', time: 'Yesterday, 4:30 PM' },
-  { id: '3', title: 'Marriage certificate', time: 'May 20, 2024' },
-];
-
-function Sidebar({ isOpen, onClose }) {
+function Sidebar({ isOpen, onClose, onOpenFeedback }) {
   const navigate = useNavigate();
-    const { t } = useTranslation();
+  const { t } = useTranslation();
 
   const handleNewChat = () => {
     navigate(ROUTES.CHAT);
     onClose?.();
   };
 
+  const handleReport = () => {
+    onClose?.();
+    onOpenFeedback?.();
+  };
+
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-40 lg:hidden"
@@ -37,7 +44,6 @@ function Sidebar({ isOpen, onClose }) {
         />
       )}
 
-      {/* Sidebar panel */}
       <aside
         className={clsx(
           'fixed top-0 left-0 h-full w-[260px] bg-surface border-r border-border z-50',
@@ -57,7 +63,7 @@ function Sidebar({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-1 text-text-secondary hover:text-text-primary"
+            className="lg:hidden p-1 text-text-secondary hover:text-text-primary rounded-md hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
             aria-label="Close sidebar"
           >
             <X size={20} />
@@ -71,29 +77,29 @@ function Sidebar({ isOpen, onClose }) {
             className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-dark text-white rounded-btn py-2.5 font-medium transition-colors"
           >
             <MessageSquarePlus size={18} />
-            <span>New Chat</span>
+            <span>{t('nav.newChat')}</span>
           </button>
         </div>
 
         {/* Nav links */}
         <nav className="px-3 pb-4">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {NAV_ITEMS.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
               onClick={onClose}
               className={({ isActive }) =>
-  clsx(
-    'flex items-center gap-3 px-3 py-2.5 rounded-btn mb-1 transition-colors',
-    isActive
-      ? 'bg-primary-light text-primary font-medium'
-      : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:hover:bg-gray-700/50'
-  )
-}
+                clsx(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-btn mb-1 transition-colors',
+                  isActive
+                    ? 'bg-primary-light text-primary font-medium'
+                    : 'text-text-secondary hover:bg-gray-100 hover:text-text-primary dark:hover:bg-gray-700/50'
+                )
+              }
             >
               <Icon size={18} />
-              <span>{label}</span>
+              <span>{t(labelKey)}</span>
             </NavLink>
           ))}
         </nav>
@@ -101,17 +107,20 @@ function Sidebar({ isOpen, onClose }) {
         {/* Recent chats */}
         <div className="flex-1 overflow-y-auto px-3 pb-4">
           <h3 className="px-3 text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
-            Recent Chats
+            {t('nav.recentChats')}
           </h3>
-          {PLACEHOLDER_RECENT.map((chat) => (
-            <button
-              key={chat.id}
-              className="w-full text-left px-3 py-2 rounded-btn hover:bg-gray-100 transition-colors dark:hover:bg-gray-700/50"
-            >
-              <div className="text-sm text-text-primary truncate">{chat.title}</div>
-              <div className="text-xs text-text-secondary mt-0.5">{chat.time}</div>
-            </button>
-          ))}
+          <RecentChatsList onNavigate={onClose} />
+        </div>
+
+        {/* Report anonymously */}
+        <div className="border-t border-border p-3">
+          <button
+            onClick={handleReport}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-btn text-sm text-text-secondary hover:bg-primary-light hover:text-primary transition-colors"
+          >
+            <Megaphone size={18} />
+            <span>Report anonymously</span>
+          </button>
         </div>
       </aside>
     </>

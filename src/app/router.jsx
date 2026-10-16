@@ -5,6 +5,7 @@ import ServicesPage from '../features/services/ServicesPage';
 import DashboardPage from '../features/dashboard/DashboardPage';
 import ProfilePage from '../features/profile/ProfilePage';
 import NotFoundPage from '../shared/components/NotFoundPage';
+import FeedbackListPage from '../features/dashboard/FeedbackListPage';
 
 function AppRouter() {
   return (
@@ -15,6 +16,7 @@ function AppRouter() {
         <Route path="/services" element={<ServicesPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/feedback/list" element={<FeedbackListPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

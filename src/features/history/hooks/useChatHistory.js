@@ -6,9 +6,6 @@ const STORAGE_KEY = 'sv_chat_sessions';
 const MAX_SESSIONS = 20;
 const MAX_AGE_DAYS = 30;
 
-// ─────────────────────────────────────────────
-// Guest (localStorage) helpers
-// ─────────────────────────────────────────────
 function loadLocalSessions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -30,7 +27,6 @@ function persistLocalSessions(sessions) {
   }
 }
 
-// Backend conversation → frontend session shape
 function normalizeConversation(c) {
   return {
     id: c.id,
@@ -46,41 +42,33 @@ function normalizeConversation(c) {
   };
 }
 
-// ─────────────────────────────────────────────
-// Hook
-// ─────────────────────────────────────────────
 export function useChatHistory() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load on mount or auth state change
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setIsLoading(true);
-      if (isAuthenticated) {
-        try {
-          const res = await chatService.listConversations();
-          // res: { conversations }
-          const list = res?.conversations ?? [];
-          if (!cancelled) setSessions(list.map(normalizeConversation));
-        } catch (err) {
-          console.warn('Failed to load server history:', err);
-          if (!cancelled) setSessions([]);
-        }
-      } else {
-        if (!cancelled) setSessions(loadLocalSessions());
+  const loadSessions = useCallback(async () => {
+    setIsLoading(true);
+    if (isAuthenticated) {
+      try {
+        const res = await chatService.listConversations();
+        const list = res?.conversations ?? [];
+        setSessions(list.map(normalizeConversation));
+      } catch (err) {
+        console.warn('Failed to load server history:', err);
+        setSessions([]);
       }
-      if (!cancelled) setIsLoading(false);
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
+    } else {
+      setSessions(loadLocalSessions());
+    }
+    setIsLoading(false);
   }, [isAuthenticated]);
+
+  // Load on mount and when auth state changes (wait for auth to settle)
+  useEffect(() => {
+    if (authLoading) return; // wait for AuthProvider bootstrap
+    loadSessions();
+  }, [authLoading, loadSessions]);
 
   // Persist — guest only
   useEffect(() => {
@@ -91,7 +79,6 @@ export function useChatHistory() {
 
   const saveSession = useCallback(
     (session) => {
-      // Authed users: backend persists automatically on /chat
       if (isAuthenticated) return;
 
       const trimmed = {
@@ -132,7 +119,6 @@ export function useChatHistory() {
     setSessions([]);
   }, []);
 
-  // Refresh from server (call after /chat when authed)
   const refresh = useCallback(async () => {
     if (!isAuthenticated) return;
     try {

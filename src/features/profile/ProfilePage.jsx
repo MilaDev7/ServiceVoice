@@ -7,7 +7,6 @@ import {
   LogIn,
   LogOut,
   User as UserIcon,
-  Mail,
 } from 'lucide-react';
 import ProfileSection from './components/ProfileSection';
 import PreferenceRow from './components/PreferenceRow';
@@ -59,16 +58,12 @@ function ProfilePage() {
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-text-primary">
-          {t('profile.title')}
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          {t('profile.subtitle')}
-        </p>
+        <h1 className="text-2xl font-bold text-text-primary">{t('profile.title')}</h1>
+        <p className="text-sm text-text-secondary mt-1">{t('profile.subtitle')}</p>
       </div>
 
       <div className="space-y-4">
-        {/* ── Account ─────────────────────────────── */}
+        {/* ── Account ───────────────────────────── */}
         <ProfileSection
           title="Account"
           description={
@@ -85,10 +80,10 @@ function ProfilePage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-semibold text-text-primary truncate">
-                    {user?.email || 'Signed in'}
+                    {user?.name || user?.email || 'Signed in'}
                   </p>
-                  <p className="text-xs text-text-secondary">
-                    Your history syncs automatically
+                  <p className="text-xs text-text-secondary truncate">
+                    {user?.email}
                   </p>
                 </div>
               </div>
@@ -113,9 +108,7 @@ function ProfilePage() {
                   <UserIcon size={20} className="text-text-secondary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-text-primary">
-                    Guest mode
-                  </p>
+                  <p className="font-semibold text-text-primary">Guest mode</p>
                   <p className="text-xs text-text-secondary">
                     Chats stay on this device only
                   </p>
@@ -137,33 +130,8 @@ function ProfilePage() {
           )}
         </ProfileSection>
 
-        {/* ── Your preferences ─────────────────────── */}
-        <ProfileSection
-          title={t('profile.yourPrefs')}
-          description={t('profile.prefsDesc')}
-        >
-          <div className="flex items-center gap-4 p-4 bg-primary-light rounded-card">
-            <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">U</span>
-            </div>
-            <div>
-              <p className="font-semibold text-text-primary">
-                {isAuthenticated ? user?.email : t('profile.anonymousUser')}
-              </p>
-              <p className="text-xs text-text-secondary">
-                {isAuthenticated
-                  ? 'Signed in'
-                  : t('profile.anonymousDesc')}
-              </p>
-            </div>
-          </div>
-        </ProfileSection>
-
         {/* Language */}
-        <ProfileSection
-          title={t('profile.language')}
-          description={t('profile.languageDesc')}
-        >
+        <ProfileSection title={t('profile.language')} description={t('profile.languageDesc')}>
           <PreferenceRow
             label={t('profile.preferredLang')}
             description={`${t('profile.currently')}: ${currentLanguage.label}`}
@@ -178,7 +146,6 @@ function ProfilePage() {
                       ? 'bg-surface text-primary shadow-sm'
                       : 'text-text-secondary hover:text-text-primary'
                   }`}
-                  aria-pressed={language === lang.code}
                 >
                   {lang.short}
                 </button>
@@ -188,10 +155,7 @@ function ProfilePage() {
         </ProfileSection>
 
         {/* Woreda */}
-        <ProfileSection
-          title={t('profile.location')}
-          description={t('profile.locationDesc')}
-        >
+        <ProfileSection title={t('profile.location')} description={t('profile.locationDesc')}>
           <PreferenceRow
             label={t('profile.yourWoreda')}
             description={`${t('profile.currently')}: ${currentWoreda.name}`}
@@ -202,23 +166,15 @@ function ProfilePage() {
               className="text-sm border border-border rounded-btn px-3 py-1.5 bg-surface text-text-primary focus:outline-none focus:border-primary-border focus:ring-1 focus:ring-primary-border"
             >
               {WOREDAS.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
+                <option key={w.id} value={w.id}>{w.name}</option>
               ))}
             </select>
           </PreferenceRow>
         </ProfileSection>
 
         {/* Theme */}
-        <ProfileSection
-          title={t('profile.appearance')}
-          description={t('profile.appearanceDesc')}
-        >
-          <PreferenceRow
-            label={t('profile.theme')}
-            description={`${t('profile.currently')}: ${theme}`}
-          >
+        <ProfileSection title={t('profile.appearance')} description={t('profile.appearanceDesc')}>
+          <PreferenceRow label={t('profile.theme')} description={`${t('profile.currently')}: ${theme}`}>
             <div className="flex items-center bg-page-bg rounded-pill p-0.5">
               <button
                 onClick={() => setTheme('light')}
@@ -227,10 +183,8 @@ function ProfilePage() {
                     ? 'bg-surface text-primary shadow-sm'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
-                aria-pressed={theme === 'light'}
               >
-                <Sun size={14} />
-                {t('profile.light')}
+                <Sun size={14} />{t('profile.light')}
               </button>
               <button
                 onClick={() => setTheme('dark')}
@@ -239,67 +193,35 @@ function ProfilePage() {
                     ? 'bg-surface text-primary shadow-sm'
                     : 'text-text-secondary hover:text-text-primary'
                 }`}
-                aria-pressed={theme === 'dark'}
               >
-                <Moon size={14} />
-                {t('profile.dark')}
+                <Moon size={14} />{t('profile.dark')}
               </button>
             </div>
           </PreferenceRow>
         </ProfileSection>
 
         {/* Notifications */}
-        <ProfileSection
-          title={t('profile.notifications')}
-          description={t('profile.notificationsDesc')}
-        >
-          <PreferenceRow
-            label={t('profile.voiceResponses')}
-            description={t('profile.voiceResponsesDesc')}
-          >
-            <ToggleSwitch
-              checked={notifications.voice}
-              onChange={() => toggleNotification('voice')}
-            />
+        <ProfileSection title={t('profile.notifications')} description={t('profile.notificationsDesc')}>
+          <PreferenceRow label={t('profile.voiceResponses')} description={t('profile.voiceResponsesDesc')}>
+            <ToggleSwitch checked={notifications.voice} onChange={() => toggleNotification('voice')} />
           </PreferenceRow>
-
-          <PreferenceRow
-            label={t('profile.smsAlerts')}
-            description={t('profile.smsAlertsDesc')}
-          >
-            <ToggleSwitch
-              checked={notifications.sms}
-              onChange={() => toggleNotification('sms')}
-            />
+          <PreferenceRow label={t('profile.smsAlerts')} description={t('profile.smsAlertsDesc')}>
+            <ToggleSwitch checked={notifications.sms} onChange={() => toggleNotification('sms')} />
           </PreferenceRow>
-
-          <PreferenceRow
-            label={t('profile.pushNotifications')}
-            description={t('profile.pushDesc')}
-          >
-            <ToggleSwitch
-              checked={notifications.push}
-              onChange={() => toggleNotification('push')}
-            />
+          <PreferenceRow label={t('profile.pushNotifications')} description={t('profile.pushDesc')}>
+            <ToggleSwitch checked={notifications.push} onChange={() => toggleNotification('push')} />
           </PreferenceRow>
         </ProfileSection>
 
         {/* Data & privacy */}
-        <ProfileSection
-          title={t('profile.dataPrivacy')}
-          description={t('profile.dataPrivacyDesc')}
-        >
+        <ProfileSection title={t('profile.dataPrivacy')} description={t('profile.dataPrivacyDesc')}>
           <div className="flex items-start gap-3 p-3 bg-primary-light rounded-btn">
             <Shield size={16} className="text-primary flex-shrink-0 mt-0.5" />
             <p className="text-xs text-primary-dark dark:text-green-300">
               {t('profile.privacyNote')}
             </p>
           </div>
-
-          <PreferenceRow
-            label={t('profile.clearData')}
-            description={t('profile.clearDataDesc')}
-          >
+          <PreferenceRow label={t('profile.clearData')} description={t('profile.clearDataDesc')}>
             <button
               onClick={handleClearData}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-btn border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
@@ -315,7 +237,6 @@ function ProfilePage() {
         </p>
       </div>
 
-      {/* Auth modal */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
