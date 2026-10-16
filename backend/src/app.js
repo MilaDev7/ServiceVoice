@@ -25,12 +25,15 @@ app.use(
 
 app.use(
   cors({
-    origin: env.NODE_ENV === 'production' 
-      ? env.FRONTEND_URL 
-      : true,  
+    origin: env.NODE_ENV === 'production'
+      ? [
+          env.FRONTEND_URL,
+          // Add any preview URLs from Vercel
+        ].filter(Boolean)
+      : true, // allow all in dev
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    credentials: true,
   })
 );
 app.use(
