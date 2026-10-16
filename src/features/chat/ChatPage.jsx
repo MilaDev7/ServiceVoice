@@ -9,6 +9,13 @@ import { useChatHistory } from '../history/hooks/useChatHistory';
 import { usePreferences } from '../settings/hooks/usePreferences';
 import { useTranslation } from '../../i18n';
 import { chatService } from '../../services/chatService';
+import { useAuth } from '../auth/components/AuthProvider';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value) {
+  return typeof value === 'string' && UUID_REGEX.test(value);
+}
 
 function ChatPage() {
   const { sessionId: urlSessionId } = useParams();
@@ -17,6 +24,7 @@ function ChatPage() {
   const { saveSession, getSession, refresh: refreshHistory } = useChatHistory();
   const { language } = usePreferences();
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
 
   const [messages, setMessages] = useState([]);
   const [sessionId, setSessionId] = useState(urlSessionId || null);
@@ -25,9 +33,7 @@ function ChatPage() {
   const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const hasHandledQuery = useRef(false);
 
-  // ─────────────────────────────────────────────
   // Refs to avoid effect loops
-  // ─────────────────────────────────────────────
   const getSessionRef = useRef(getSession);
   useEffect(() => {
     getSessionRef.current = getSession;
@@ -38,9 +44,7 @@ function ChatPage() {
     saveSessionRef.current = saveSession;
   }, [saveSession]);
 
-  // ─────────────────────────────────────────────
   // Load session when URL changes
-  // ─────────────────────────────────────────────
   useEffect(() => {
     if (urlSessionId) {
       const existing = getSessionRef.current(urlSessionId);
@@ -54,11 +58,10 @@ function ChatPage() {
     setMessages([]);
   }, [urlSessionId]);
 
-  // ─────────────────────────────────────────────
-  // Save to localStorage (guest mode only — authed users auto-saved by backend)
-  // ─────────────────────────────────────────────
+  // Save to localStorage (guest only — authed users auto-saved by backend)
   useEffect(() => {
     if (messages.length === 0) return;
+    if (isAuthenticated) return;
 
     const id = urlSessionId || sessionId || `chat-${Date.now()}`;
     if (!sessionId && !urlSessionId) setSessionId(id);
@@ -76,23 +79,19 @@ function ChatPage() {
       createdAt: messages[0]?.timestamp || new Date().toISOString(),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages]);
+  }, [messages, isAuthenticated]);
 
-  // ─────────────────────────────────────────────
-  // Fallback bot reply (used if backend is unreachable)
-  // ─────────────────────────────────────────────
+  // Fallback bot reply
   const generateFallbackReply = useCallback((text) => {
     return {
       id: `bot-${Date.now()}`,
       role: 'bot',
-      content: `I couldn't reach the server. Please check your connection and try again. You asked: "${text}"`,
+      content: `I couldn't reach the server. Please check your connection and try again.`,
       timestamp: new Date().toISOString(),
     };
   }, []);
 
-  // ─────────────────────────────────────────────
   // Send message — REAL backend integration
-  // ─────────────────────────────────────────────
   const sendUserMessage = useCallback(
     async (text) => {
       const newMessage = {
@@ -105,15 +104,16 @@ function ChatPage() {
       setIsThinking(true);
 
       try {
+        const candidate = urlSessionId || sessionId;
+        const validConversationId = isUuid(candidate) ? candidate : undefined;
+
         const res = await chatService.sendMessage({
           message: text,
-          conversationId: sessionId || urlSessionId || undefined,
+          conversationId: validConversationId,
           language: language || 'am',
         });
 
-        // Backend response (unwrapped by axios interceptor):
-        // { conversationId, persistent, answer, service }
-
+        // res: { conversationId, persistent, answer, service }
         const botMessage = {
           id: `bot-${Date.now()}`,
           role: 'bot',
@@ -123,30 +123,27 @@ function ChatPage() {
 
         setMessages((prev) => [...prev, botMessage]);
 
-        // If backend created/returned a conversation ID, update URL
         if (res.conversationId && res.conversationId !== sessionId) {
           setSessionId(res.conversationId);
-          navigate(`/chat/${res.conversationId}`, { replace: true });
+          if (isUuid(res.conversationId)) {
+            navigate(`/chat/${res.conversationId}`, { replace: true });
+          }
         }
 
-        // Refresh sidebar for signed-in users
-        if (res.persistent) {
+        if (res.persistent && isAuthenticated) {
           refreshHistory();
         }
       } catch (err) {
         console.error('[chat] send failed:', err);
-        // Show error to user via fallback message
         setMessages((prev) => [...prev, generateFallbackReply(text)]);
       } finally {
         setIsThinking(false);
       }
     },
-    [sessionId, urlSessionId, language, navigate, refreshHistory, generateFallbackReply]
+    [sessionId, urlSessionId, language, navigate, refreshHistory, generateFallbackReply, isAuthenticated]
   );
 
-  // ─────────────────────────────────────────────
   // Handle ?q= from ServicesPage
-  // ─────────────────────────────────────────────
   useEffect(() => {
     const query = searchParams.get('q');
     if (query && !hasHandledQuery.current) {
@@ -157,19 +154,13 @@ function ChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // Handlers
   const handleActionClick = (action) => {
     console.log('Quick action clicked:', action.label);
     setIsFeedbackOpen(true);
   };
   const handleSmsClick = () => console.log('SMS requested');
   const handleSend = (text) => sendUserMessage(text);
-  const handleVoiceTranscript = (transcript) => {
-    // Voice transcript came back — insert as user message
-    // (In the future, VoiceOverlay will call the voice API directly
-    // and pass back both transcript AND bot answer.)
-    sendUserMessage(transcript);
-  };
+  const handleVoiceTranscript = (transcript) => sendUserMessage(transcript);
   const handleMicClick = () => setIsVoiceOpen(true);
   const handleAttachClick = () => console.log('Attach clicked');
   const handleFeedbackSubmit = (p) => console.log('Feedback:', p);

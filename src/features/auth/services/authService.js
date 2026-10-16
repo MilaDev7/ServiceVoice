@@ -49,13 +49,12 @@ export const authService = {
   },
 
   // ─────────────────────────────────────────────
-  // API calls
+  // API calls (interceptor already unwraps { success, data })
   // ─────────────────────────────────────────────
   signUp: async ({ name, email, password }) => {
     const res = await api.post('/auth/register', { name, email, password });
-    // res is already unwrapped by axios interceptor (returns response.data)
-    // But backend wraps in { success, data: { user, accessToken, refreshToken } }
-    const { user, accessToken, refreshToken } = res.data;
+    // res is already: { user, accessToken, refreshToken }
+    const { user, accessToken, refreshToken } = res;
     authService.setToken(accessToken);
     authService.setRefreshToken(refreshToken);
     return { user, accessToken, refreshToken };
@@ -63,7 +62,7 @@ export const authService = {
 
   signIn: async ({ email, password }) => {
     const res = await api.post('/auth/login', { email, password });
-    const { user, accessToken, refreshToken } = res.data;
+    const { user, accessToken, refreshToken } = res;
     authService.setToken(accessToken);
     authService.setRefreshToken(refreshToken);
     return { user, accessToken, refreshToken };
@@ -74,21 +73,20 @@ export const authService = {
     if (!refreshToken) throw new Error('No refresh token');
 
     const res = await api.post('/auth/refresh', { refreshToken });
-    const { accessToken, refreshToken: newRefresh } = res.data;
-    authService.setToken(accessToken);
-    authService.setRefreshToken(newRefresh);
-    return { accessToken };
+    // res: { accessToken, refreshToken }
+    authService.setToken(res.accessToken);
+    if (res.refreshToken) authService.setRefreshToken(res.refreshToken);
+    return res;
   },
 
   signOut: async () => {
-    // Backend has no /auth/logout endpoint — clear client-side only
     authService.clearTokens();
   },
 
   me: async () => {
     const res = await api.get('/auth/me');
-    // Backend returns { success, data: { user } }
-    return res.data;  // { user }
+    // res: { user }
+    return res;
   },
 
   forgotPassword: (email) =>

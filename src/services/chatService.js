@@ -3,9 +3,8 @@ import api from './api';
 export const chatService = {
   /**
    * Send a text message and get a bot reply.
-   * Backend: POST /api/chat
-   * Body: { message, language, conversationId? }
-   * Response: { success, data: { conversationId, persistent, answer, service } }
+   * Backend returns { success, data: { conversationId, persistent, answer, service } }
+   * axios interceptor unwraps to just: { conversationId, persistent, answer, service }
    */
   sendMessage: async ({ message, conversationId, language = 'am' }) => {
     const res = await api.post('/chat', {
@@ -13,22 +12,22 @@ export const chatService = {
       language,
       conversationId: conversationId || undefined,
     });
-    return res.data; // { conversationId, persistent, answer, service }
+    return res; // already unwrapped
   },
 
   /**
    * List conversations for signed-in user.
-   * Backend: GET /api/history
-   * Response: { success, data: { conversations } }
+   * Backend returns { success, data: { conversations } }
+   * Unwrapped to: { conversations }
    */
   listConversations: async () => {
     const res = await api.get('/history');
-    return res.data; // { conversations }
+    return res; // already unwrapped
   },
 
   /**
-   * No specific single-conversation endpoint in backend.
-   * We fetch the whole list and filter. Alternatively, could add later.
+   * No single-conversation endpoint in backend.
+   * Fetch list and filter.
    */
   getConversation: async (id) => {
     const { conversations } = await chatService.listConversations();
@@ -36,26 +35,11 @@ export const chatService = {
   },
 
   /**
-   * ⚠️ Backend does NOT expose POST /history/conversations.
-   * Conversations are created automatically via /chat when authenticated.
-   * So this becomes a no-op for now (or remove entirely).
+   * Not supported by backend — no-op.
    */
-  saveConversation: async () => {
-    console.warn('[chatService] saveConversation is a no-op — backend auto-creates on /chat');
-    return null;
-  },
+  saveConversation: async () => null,
 
-  /**
-   * ⚠️ Backend does NOT expose DELETE /history/:id.
-   * Removing this from frontend for now.
-   */
-  deleteConversation: async () => {
-    console.warn('[chatService] deleteConversation not supported by backend');
-    return null;
-  },
+  deleteConversation: async () => null,
 
-  deleteAllConversations: async () => {
-    console.warn('[chatService] deleteAllConversations not supported by backend');
-    return null;
-  },
+  deleteAllConversations: async () => null,
 };

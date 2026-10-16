@@ -10,42 +10,58 @@ export function AuthProvider({ children }) {
 
   // On mount — validate existing token
   useEffect(() => {
-  let cancelled = false;
+    let cancelled = false;
 
-  const bootstrap = async () => {
-    const token = authService.getToken();
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const { user } = await authService.me();
-      if (!cancelled) setUser(user);
-    } catch (err) {
-      if (!cancelled) {
-        authService.clearTokens();
-        setUser(null);
+    const bootstrap = async () => {
+      const token = authService.getToken();
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    } finally {
-      if (!cancelled) setIsLoading(false);
+
+      try {
+        const res = await authService.me();
+        // res: { user }
+        if (!cancelled) setUser(res.user);
+      } catch (err) {
+        if (!cancelled) {
+          authService.clearTokens();
+          setUser(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    bootstrap();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const signUp = useCallback(async ({ name, email, password }) => {
+    setError(null);
+    try {
+      const res = await authService.signUp({ name, email, password });
+      setUser(res.user);
+      return res;
+    } catch (err) {
+      setError(err.message || 'Sign up failed');
+      throw err;
     }
-  };
+  }, []);
 
-  bootstrap();
-  return () => { cancelled = true; };
-}, []);
-
- const signUp = useCallback(async ({ name, email, password }) => {
-  const res = await authService.signUp({ name, email, password });
-  setUser(res.user);
-  return res;
-}, []);
-const signIn = useCallback(async ({ email, password }) => {
-  const res = await authService.signIn({ email, password });
-  setUser(res.user);
-  return res;
-}, []);
+  const signIn = useCallback(async ({ email, password }) => {
+    setError(null);
+    try {
+      const res = await authService.signIn({ email, password });
+      setUser(res.user);
+      return res;
+    } catch (err) {
+      setError(err.message || 'Sign in failed');
+      throw err;
+    }
+  }, []);
 
   const signOut = useCallback(async () => {
     await authService.signOut();

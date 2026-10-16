@@ -35,22 +35,15 @@ api.interceptors.response.use(
   (response) => {
     const payload = response.data;
 
-    // Backend standard envelope: { success: true, data: {...} }
-    if (
-      payload &&
-      typeof payload === 'object' &&
-      'success' in payload
-    ) {
+    // Backend envelope: { success: true, data: {...} }
+    if (payload && typeof payload === 'object' && 'success' in payload) {
       if (payload.success === true) {
-        // Return the inner data — services get clean objects
         return payload.data;
       }
-      // Backend said success:false but returned 200 — treat as error
       const message = payload.message || 'Request failed';
       return Promise.reject({ status: response.status, message });
     }
 
-    // Fallback: non-enveloped response
     return payload;
   },
   (error) => {

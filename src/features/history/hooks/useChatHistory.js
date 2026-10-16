@@ -6,6 +6,9 @@ const STORAGE_KEY = 'sv_chat_sessions';
 const MAX_SESSIONS = 20;
 const MAX_AGE_DAYS = 30;
 
+// ─────────────────────────────────────────────
+// Guest (localStorage) helpers
+// ─────────────────────────────────────────────
 function loadLocalSessions() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -13,7 +16,8 @@ function loadLocalSessions() {
     const sessions = JSON.parse(raw);
     const cutoff = Date.now() - MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
     return sessions.filter((s) => new Date(s.updatedAt).getTime() > cutoff);
-  } catch {
+  } catch (err) {
+    console.warn('Failed to load local sessions:', err);
     return [];
   }
 }
@@ -42,12 +46,15 @@ function normalizeConversation(c) {
   };
 }
 
+// ─────────────────────────────────────────────
+// Hook
+// ─────────────────────────────────────────────
 export function useChatHistory() {
   const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load
+  // Load on mount or auth state change
   useEffect(() => {
     let cancelled = false;
 
@@ -55,8 +62,10 @@ export function useChatHistory() {
       setIsLoading(true);
       if (isAuthenticated) {
         try {
-          const { conversations } = await chatService.listConversations();
-          if (!cancelled) setSessions(conversations.map(normalizeConversation));
+          const res = await chatService.listConversations();
+          // res: { conversations }
+          const list = res?.conversations ?? [];
+          if (!cancelled) setSessions(list.map(normalizeConversation));
         } catch (err) {
           console.warn('Failed to load server history:', err);
           if (!cancelled) setSessions([]);
@@ -68,43 +77,47 @@ export function useChatHistory() {
     };
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated]);
 
-  // Persist (guest only)
+  // Persist — guest only
   useEffect(() => {
     if (!isAuthenticated) {
       persistLocalSessions(sessions);
     }
   }, [sessions, isAuthenticated]);
 
-  const saveSession = useCallback((session) => {
-    // In guest mode: persist to localStorage
-    // In authed mode: backend auto-persists via /chat — no action needed
-    if (isAuthenticated) return;
+  const saveSession = useCallback(
+    (session) => {
+      // Authed users: backend persists automatically on /chat
+      if (isAuthenticated) return;
 
-    const trimmed = {
-      id: session.id,
-      title: session.title || 'New chat',
-      messages: session.messages.slice(-30),
-      createdAt: session.createdAt,
-      updatedAt: new Date().toISOString(),
-    };
+      const trimmed = {
+        id: session.id,
+        title: session.title || 'New chat',
+        messages: session.messages.slice(-30),
+        createdAt: session.createdAt,
+        updatedAt: new Date().toISOString(),
+      };
 
-    setSessions((prev) => {
-      const existing = prev.findIndex((s) => s.id === trimmed.id);
-      let next;
-      if (existing >= 0) {
-        next = [...prev];
-        next[existing] = trimmed;
-      } else {
-        next = [trimmed, ...prev];
-      }
-      return next
-        .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-        .slice(0, MAX_SESSIONS);
-    });
-  }, [isAuthenticated]);
+      setSessions((prev) => {
+        const existing = prev.findIndex((s) => s.id === trimmed.id);
+        let next;
+        if (existing >= 0) {
+          next = [...prev];
+          next[existing] = trimmed;
+        } else {
+          next = [trimmed, ...prev];
+        }
+        return next
+          .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+          .slice(0, MAX_SESSIONS);
+      });
+    },
+    [isAuthenticated]
+  );
 
   const getSession = useCallback(
     (id) => sessions.find((s) => s.id === id),
@@ -112,7 +125,6 @@ export function useChatHistory() {
   );
 
   const deleteSession = useCallback((id) => {
-    // Local-only for now
     setSessions((prev) => prev.filter((s) => s.id !== id));
   }, []);
 
@@ -120,12 +132,13 @@ export function useChatHistory() {
     setSessions([]);
   }, []);
 
-  // Refresh from server (call after sending a message when authed)
+  // Refresh from server (call after /chat when authed)
   const refresh = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const { conversations } = await chatService.listConversations();
-      setSessions(conversations.map(normalizeConversation));
+      const res = await chatService.listConversations();
+      const list = res?.conversations ?? [];
+      setSessions(list.map(normalizeConversation));
     } catch (err) {
       console.warn('Refresh failed:', err);
     }
@@ -138,6 +151,6 @@ export function useChatHistory() {
     getSession,
     deleteSession,
     clearAll,
-    refresh, 
+    refresh,
   };
 }

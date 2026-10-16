@@ -7,7 +7,7 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   const { signIn, signUp, error: authError, clearError } = useAuth();
   const { t } = useTranslation();
 
-  const [mode, setMode] = useState(initialMode); // 'signin' | 'signup'
+  const [mode, setMode] = useState(initialMode);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +16,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localError, setLocalError] = useState(null);
 
-  // Reset on open/close
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
@@ -30,7 +29,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     }
   }, [isOpen, initialMode, clearError]);
 
-  // Escape key closes
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e) => {
@@ -40,7 +38,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose, isSubmitting]);
 
-  // Lock body scroll
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -114,13 +111,11 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
       onClick={isSubmitting ? undefined : onClose}
       role="dialog"
       aria-modal="true"
-      aria-label={mode === 'signin' ? 'Sign in' : 'Create account'}
     >
       <div
         className="w-full max-w-md bg-surface rounded-card shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-semibold text-text-primary">
             {mode === 'signin' ? 'Sign in' : 'Create account'}
@@ -135,22 +130,14 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
           </button>
         </div>
 
-        {/* Body */}
         <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {/* Name — signup only */}
           {mode === 'signup' && (
             <div>
-              <label
-                htmlFor="auth-name"
-                className="block text-xs font-medium text-text-primary mb-1.5"
-              >
+              <label htmlFor="auth-name" className="block text-xs font-medium text-text-primary mb-1.5">
                 Full name
               </label>
               <div className="relative">
-                <User
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                />
+                <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                 <input
                   id="auth-name"
                   type="text"
@@ -165,19 +152,12 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             </div>
           )}
 
-          {/* Email */}
           <div>
-            <label
-              htmlFor="auth-email"
-              className="block text-xs font-medium text-text-primary mb-1.5"
-            >
+            <label htmlFor="auth-email" className="block text-xs font-medium text-text-primary mb-1.5">
               Email
             </label>
             <div className="relative">
-              <Mail
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-              />
+              <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
               <input
                 id="auth-email"
                 type="email"
@@ -191,19 +171,12 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             </div>
           </div>
 
-          {/* Password */}
           <div>
-            <label
-              htmlFor="auth-password"
-              className="block text-xs font-medium text-text-primary mb-1.5"
-            >
+            <label htmlFor="auth-password" className="block text-xs font-medium text-text-primary mb-1.5">
               Password
             </label>
             <div className="relative">
-              <Lock
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-              />
+              <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
               <input
                 id="auth-password"
                 type={showPassword ? 'text' : 'password'}
@@ -218,7 +191,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -229,20 +201,13 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             </p>
           </div>
 
-          {/* Confirm password — signup only */}
           {mode === 'signup' && (
             <div>
-              <label
-                htmlFor="auth-confirm"
-                className="block text-xs font-medium text-text-primary mb-1.5"
-              >
+              <label htmlFor="auth-confirm" className="block text-xs font-medium text-text-primary mb-1.5">
                 Confirm password
               </label>
               <div className="relative">
-                <Lock
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary"
-                />
+                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
                 <input
                   id="auth-confirm"
                   type={showPassword ? 'text' : 'password'}
@@ -257,16 +222,12 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             </div>
           )}
 
-          {/* Error */}
           {displayError && (
             <div className="px-3 py-2 rounded-btn bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <p className="text-xs text-red-600 dark:text-red-400">
-                {displayError}
-              </p>
+              <p className="text-xs text-red-600 dark:text-red-400">{displayError}</p>
             </div>
           )}
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={isSubmitting}
@@ -282,7 +243,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             )}
           </button>
 
-          {/* Switch mode */}
           <p className="text-center text-xs text-text-secondary">
             {mode === 'signin' ? "Don't have an account?" : 'Already have one?'}{' '}
             <button
@@ -293,11 +253,6 @@ function AuthModal({ isOpen, onClose, initialMode = 'signin' }) {
             >
               {mode === 'signin' ? 'Sign up' : 'Sign in'}
             </button>
-          </p>
-
-          {/* Privacy note */}
-          <p className="text-[11px] text-text-secondary text-center pt-1">
-            🔒 We never share your email or use it for marketing.
           </p>
         </form>
       </div>
