@@ -15,7 +15,7 @@ import historyRoutes from "./routes/history.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 
 const app = express();
-
+app.set('trust proxy', 1);
 app.disable("x-powered-by");
 
 app.use(
@@ -24,9 +24,11 @@ app.use(
 
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: env.NODE_ENV === 'production' 
+      ? env.FRONTEND_URL 
+      : true,  
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],   
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true
   })
 );
